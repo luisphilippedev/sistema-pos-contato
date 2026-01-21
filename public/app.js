@@ -1,5 +1,7 @@
-// Configuração da API
-const API_URL = 'http://localhost:3000/api';
+// Configuração da API - detecta automaticamente se é local ou produção
+const API_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3000/api' 
+  : `${window.location.origin}/api`;
 let token = localStorage.getItem('token');
 let usuarioLogado = null;
 
