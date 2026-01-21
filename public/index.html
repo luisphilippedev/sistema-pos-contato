@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pós contato - Sistema Localiza</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>Pós contato</h1>
+                <p>Sistema de Gestão de Atendimento</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" name="email" required placeholder="seu.email@localiza.com">
+                </div>
+                <div class="form-group">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" name="senha" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-primary">Entrar</button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tela Principal -->
+    <div id="mainScreen" class="main-screen" style="display: none;">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <svg width="40" height="40" viewBox="0 0 40 40">
+                            <circle cx="20" cy="20" r="20" fill="#2d5f3f"/>
+                            <text x="20" y="26" text-anchor="middle" fill="white" font-size="16" font-weight="bold" id="userInitials">LP</text>
+                        </svg>
+                    </div>
+                    <div class="user-details">
+                        <h3 id="userName">Luis Philippe</h3>
+                        <p id="userRole">Assistente Apoio Desenv. Negocio</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-center">
+                <h1 class="title">Pós contato</h1>
+                <p class="version">Versão 1.0.0</p>
+            </div>
+            
+            <div class="header-right">
+                <button id="btnRedistribuir" class="header-action" style="display: none;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" stroke-width="2"/>
+                    </svg>
+                    <span>Redistribuir<br>SS's</span>
+                </button>
+                
+                <button id="btnUsuarios" class="header-action" style="display: none;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke-width="2"/>
+                    </svg>
+                    <span>Usuários<br>Filas</span>
+                </button>
+                
+                <button id="btnLogout" class="btn-logout">Sair</button>
+            </div>
+        </header>
+
+        <!-- Dashboard Cards -->
+        <div class="dashboard">
+            <div class="card-row">
+                <!-- Meta Diária -->
+                <div class="card">
+                    <div class="card-header">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                            <path d="M12 6v6l4 2" stroke-width="2"/>
+                        </svg>
+                        <h3>Meta Diária</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="progress-circle">
+                            <svg width="120" height="120">
+                                <circle cx="60" cy="60" r="54" fill="none" stroke="#e0e0e0" stroke-width="8"/>
+                                <circle id="progressCircle" cx="60" cy="60" r="54" fill="none" stroke="#6DBF8B" 
+                                    stroke-width="8" stroke-dasharray="339.292" stroke-dashoffset="339.292" 
+                                    transform="rotate(-90 60 60)" stroke-linecap="round"/>
+                                <text x="60" y="60" text-anchor="middle" fill="#2d5f3f" font-size="24" font-weight="bold" dy="8">
+                                    <tspan id="progressText">0/50</tspan>
+                                </text>
+                            </svg>
+                        </div>
+                        <p class="meta-info">Contatos realizados hoje</p>
+                    </div>
+                </div>
+
+                <!-- Fila Atribuída -->
+                <div class="card">
+                    <div class="card-header">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2" stroke-width="2"/>
+                        </svg>
+                        <h3>Fila Atribuída</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="fila-info">
+                            <div class="fila-name" id="filaNome">Pós Rápidos e Médios</div>
+                            <div class="fila-count">
+                                <span id="filaCount" class="count-number">0</span>
+                                <span class="count-label">SS's na fila</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Iniciar Análise -->
+                <div class="card card-action" id="btnIniciarAnalise">
+                    <div class="card-header">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10" stroke-width="2" stroke="#fff"/>
+                            <path d="M10 8l6 4-6 4V8z" fill="#fff"/>
+                        </svg>
+                        <h3>Iniciar<br>Análise</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pesquisa e Tabela -->
+        <div class="content-section">
+            <div class="search-section">
+                <h2>Pesquise pela SS:</h2>
+                <div class="search-bar">
+                    <input type="text" id="searchSS" placeholder="Número da SS" class="search-input">
+                    <input type="text" id="searchPlaca" placeholder="Placa" class="search-input">
+                    <button id="btnBuscar" class="btn-search">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="11" cy="11" r="8" stroke-width="2"/>
+                            <path d="M21 21l-4.35-4.35" stroke-width="2"/>
+                        </svg>
+                        Buscar
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-section">
+                <h2>SS's Processadas</h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>SS</th>
+                                <th>Placa</th>
+                                <th>Humor Cliente</th>
+                                <th>Cluster</th>
+                                <th>Teve compra de peça</th>
+                                <th>Regional</th>
+                                <th>Serviço principal</th>
+                                <th>Região</th>
+                                <th>Responsável</th>
+                                <th>Detalhes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Dados serão carregados aqui -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Redistribuir SS's -->
+    <div id="modalRedistribuir" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Redistribuir SS's</h2>
+                <button class="modal-close" onclick="fecharModal('modalRedistribuir')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="redistribuir-filters">
+                    <label>
+                        <input type="checkbox" id="filtrarAusentes"> Mostrar apenas SS's de usuários ausentes
+                    </label>
+                </div>
+                
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
+                                <th>SS</th>
+                                <th>Placa</th>
+                                <th>Responsável</th>
+                                <th>Status</th>
+                                <th>Fila</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="redistribuirTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="redistribuir-actions">
+                    <select id="usuarioDestino" class="form-select">
+                        <option value="">Selecione o usuário de destino</option>
+                    </select>
+                    <button id="btnRedistribuirLote" class="btn-primary">Redistribuir Selecionadas</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Usuários e Filas -->
+    <div id="modalUsuarios" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Gerenciar Usuários e Filas</h2>
+                <button class="modal-close" onclick="fecharModal('modalUsuarios')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <button id="btnNovoUsuario" class="btn-primary mb-3">+ Novo Usuário</button>
+                
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Cargo</th>
+                                <th>Perfil</th>
+                                <th>Status</th>
+                                <th>Fila</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usuariosTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novo/Editar Usuário -->
+    <div id="modalUsuarioForm" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="usuarioFormTitle">Novo Usuário</h2>
+                <button class="modal-close" onclick="fecharModal('modalUsuarioForm')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="usuarioForm">
+                    <input type="hidden" id="usuarioId">
+                    <div class="form-group">
+                        <label for="usuarioNome">Nome</label>
+                        <input type="text" id="usuarioNome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="usuarioEmail">Email</label>
+                        <input type="email" id="usuarioEmail" required>
+                    </div>
+                    <div class="form-group" id="senhaGroup">
+                        <label for="usuarioSenha">Senha</label>
+                        <input type="password" id="usuarioSenha">
+                    </div>
+                    <div class="form-group">
+                        <label for="usuarioCargo">Cargo</label>
+                        <input type="text" id="usuarioCargo" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="usuarioPerfil">Perfil</label>
+                        <select id="usuarioPerfil" required>
+                            <option value="analista">Analista</option>
+                            <option value="lideranca">Liderança</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="usuarioStatus">Status</label>
+                        <select id="usuarioStatus" required>
+                            <option value="online">Online</option>
+                            <option value="ausente">Ausente</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="usuarioFila">Fila</label>
+                        <select id="usuarioFila" required>
+                            <option value="pos_complexo">Pós Complexo</option>
+                            <option value="pos_rapidos_medios">Pós Rápidos e Médios</option>
+                            <option value="pos_especiais">Pós Especiais</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="fecharModal('modalUsuarioForm')">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

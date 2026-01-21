@@ -1,0 +1,11 @@
+numero_ss,placa,humor_cliente,cluster,teve_compra_peca,regional,servico_principal,regiao,fila
+SS001,ABC1234,Satisfeito,Cluster A,Sim,São Paulo,Manutenção Preventiva,Sudeste,pos_rapidos_medios
+SS002,XYZ5678,Neutro,Cluster B,Não,Rio de Janeiro,Revisão,Sudeste,pos_complexo
+SS003,DEF9012,Insatisfeito,Cluster C,Sim,Belo Horizonte,Troca de Peças,Sudeste,pos_especiais
+SS004,GHI3456,Satisfeito,Cluster A,Não,Brasília,Alinhamento,Centro-Oeste,pos_rapidos_medios
+SS005,JKL7890,Muito Satisfeito,Cluster D,Sim,Porto Alegre,Balanceamento,Sul,pos_rapidos_medios
+SS006,MNO1234,Neutro,Cluster B,Não,Curitiba,Revisão,Sul,pos_complexo
+SS007,PQR5678,Satisfeito,Cluster A,Sim,Salvador,Manutenção Corretiva,Nordeste,pos_especiais
+SS008,STU9012,Insatisfeito,Cluster C,Não,Fortaleza,Troca de Óleo,Nordeste,pos_rapidos_medios
+SS009,VWX3456,Muito Satisfeito,Cluster D,Sim,Recife,Revisão Completa,Nordeste,pos_complexo
+SS010,YZA7890,Neutro,Cluster B,Não,Manaus,Diagnóstico,Norte,pos_rapidos_medios
