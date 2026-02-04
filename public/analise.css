@@ -254,10 +254,10 @@
 .modal-monitoramento {
     background: var(--branco);
     border-radius: 16px;
-    width: 95%;
-    max-width: 1400px;
-    max-height: fit-content;
-    overflow-y: visible;
+    width: 98%;
+    max-width: 1600px;
+    max-height: 85vh;
+    overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.4s ease;
 }
@@ -277,7 +277,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px 32px;
+    padding: 16px 24px;
     border-bottom: 2px solid var(--cinza-medio);
     background: linear-gradient(135deg, var(--verde-escuro) 0%, var(--verde-claro) 100%);
     border-radius: 16px 16px 0 0;
@@ -285,7 +285,7 @@
 
 .modal-header-custom h2 {
     color: var(--branco);
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 600;
 }
 
@@ -306,22 +306,22 @@
 }
 
 .modal-body-custom {
-    padding: 32px;
+    padding: 20px 24px;
 }
 
 /* ===== SEÇÕES DE DADOS ===== */
 .secao-dados {
-    margin-bottom: 32px;
-    padding: 24px;
+    margin-bottom: 20px;
+    padding: 16px 20px;
     background: var(--cinza-claro);
     border-radius: 12px;
 }
 
 .secao-dados h3 {
     color: var(--verde-escuro);
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -360,13 +360,13 @@
 
 .dados-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
 }
 
 .dado-item {
     background: var(--branco);
-    padding: 12px;
+    padding: 10px 12px;
     border-radius: 8px;
     border-left: 3px solid var(--verde-claro);
 }
@@ -419,15 +419,15 @@
 /* ===== FORM REGISTRO ===== */
 .form-registro {
     background: var(--branco);
-    padding: 20px;
+    padding: 16px 20px;
     border-radius: 8px;
 }
 
 .form-row {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
 .form-registro .form-group {
@@ -438,14 +438,14 @@
     display: block;
     color: var(--verde-escuro);
     font-weight: 600;
-    margin-bottom: 8px;
-    font-size: 14px;
+    margin-bottom: 6px;
+    font-size: 13px;
 }
 
 .form-registro select,
 .form-registro textarea {
     width: 100%;
-    padding: 12px;
+    padding: 10px;
     border: 2px solid var(--cinza-medio);
     border-radius: 8px;
     font-size: 14px;
