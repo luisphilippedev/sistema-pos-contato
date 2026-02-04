@@ -528,8 +528,7 @@ document.getElementById('usuarioForm').addEventListener('submit', async (e) => {
 // ===== INICIAR ANÁLISE =====
 
 document.getElementById('btnIniciarAnalise').addEventListener('click', () => {
-    // Esta funcionalidade será implementada na próxima tela
-    mostrarSucesso('Funcionalidade "Iniciar Análise" será implementada na próxima etapa!');
+    window.location.href = '/analise.html';
 });
 
 // ===== VERIFICAR LOGIN AO CARREGAR =====

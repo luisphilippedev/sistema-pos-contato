@@ -7,6 +7,13 @@ const XLSX = require('xlsx');
 const path = require('path');
 require('dotenv').config();
 
+// Validar variáveis de ambiente obrigatórias
+if (!process.env.JWT_SECRET) {
+  console.error('❌ ERRO: JWT_SECRET não está definido nas variáveis de ambiente!');
+  console.error('Por favor, adicione JWT_SECRET no Render.com (Environment Variables)');
+  process.exit(1);
+}
+
 // Usar PostgreSQL se DATABASE_URL estiver definido, senão SQLite
 const db = process.env.DATABASE_URL 
   ? require('./database-postgres')
@@ -137,6 +144,22 @@ app.put('/api/usuarios/:id', authenticateToken, authenticateLideranca, async (re
 });
 
 // ===== ROTAS DE SS (SOLICITAÇÕES DE SERVIÇO) =====
+
+// Buscar SS específica por ID
+app.get('/api/ss/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ss = await db.get('SELECT * FROM ss WHERE id = ?', [id]);
+    
+    if (!ss) {
+      return res.status(404).json({ error: 'SS não encontrada' });
+    }
+    
+    res.json(ss);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Listar SS's atribuídas ao usuário
 app.get('/api/minhas-ss', authenticateToken, async (req, res) => {
@@ -355,6 +378,47 @@ app.get('/api/exportar-ss', authenticateToken, authenticateLideranca, async (req
     res.setHeader('Content-Disposition', 'attachment; filename=ss_processadas.xlsx');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(buffer);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== ROTAS DE CONTATOS (MONITORAMENTO) =====
+
+// Listar contatos de uma SS
+app.get('/api/ss/:id/contatos', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const contatos = await db.query(
+      'SELECT * FROM contatos WHERE ss_id = ? ORDER BY criado_em DESC',
+      [id]
+    );
+    res.json(contatos);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Registrar novo contato
+app.post('/api/ss/:id/contato', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { sucesso_contato, disparo_whatsapp, percepcao, humor_contato, observacoes } = req.body;
+    
+    await db.run(`
+      INSERT INTO contatos (ss_id, usuario_id, sucesso_contato, disparo_whatsapp, percepcao, humor_contato, observacoes)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [id, req.user.id, sucesso_contato, disparo_whatsapp, percepcao, humor_contato, observacoes]);
+    
+    // Atualizar contatos realizados do dia
+    const hoje = new Date().toISOString().split('T')[0];
+    await db.run(`
+      INSERT INTO metas_diarias (usuario_id, data, contatos_realizados, meta)
+      VALUES (?, ?, 1, 50)
+      ON CONFLICT(usuario_id, data) DO UPDATE SET contatos_realizados = contatos_realizados + 1
+    `, [req.user.id, hoje]);
+    
+    res.json({ message: 'Contato registrado com sucesso' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

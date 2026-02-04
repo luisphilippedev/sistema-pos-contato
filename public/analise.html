@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise - Pós contato</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="analise.css">
+</head>
+<body>
+    <div id="analiseScreen" class="analise-screen">
+        <!-- Header -->
+        <header class="header-analise">
+            <div class="header-left">
+                <button id="btnVoltar" class="btn-voltar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 12H5M12 19l-7-7 7-7" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Voltar
+                </button>
+            </div>
+            
+            <div class="header-center-analise">
+                <div class="user-status">
+                    <div class="user-info-mini">
+                        <span id="userNameAnalise">Luis Philippe</span>
+                        <div class="status-indicator">
+                            <span class="status-dot" id="statusDot"></span>
+                            <span id="userStatusText">Online</span>
+                        </div>
+                    </div>
+                </div>
+                <h1 class="title-analise">
+                    Pós contato - <span id="filaAnalise">Pós Rápidos e Médios</span>
+                </h1>
+            </div>
+            
+            <div class="header-right">
+                <a href="https://spoc.localiza.com/web#" target="_blank" class="btn-monitoramento-externo" title="Monitoramento Avulso">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke-width="2"/>
+                    </svg>
+                    <span>Monitor Avulso</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Tabela de SS's -->
+        <div class="ss-container">
+            <div class="ss-table-wrapper">
+                <table class="ss-table">
+                    <thead>
+                        <tr>
+                            <th>SS</th>
+                            <th>Placa</th>
+                            <th>Data Saída</th>
+                            <th>Cluster</th>
+                            <th>Regional</th>
+                            <th>Serviço Principal</th>
+                            <th>Data Envio Pesquisa</th>
+                            <th>Prazo</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ssTableBody">
+                        <!-- Dados carregados dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Monitoramento -->
+    <div id="modalMonitoramento" class="modal-overlay">
+        <div class="modal-monitoramento">
+            <div class="modal-header-custom">
+                <h2>Monitoramento da SS</h2>
+                <button class="modal-close-custom" onclick="fecharMonitoramento()">&times;</button>
+            </div>
+            
+            <div class="modal-body-custom">
+                <!-- Dados da Placa -->
+                <div class="secao-dados">
+                    <h3>Dados da Placa</h3>
+                    <div class="dados-grid">
+                        <div class="dado-item">
+                            <span class="dado-label">SS:</span>
+                            <span class="dado-valor" id="dadoSS">-</span>
+                        </div>
+                        <div class="dado-item">
+                            <span class="dado-label">Placa:</span>
+                            <span class="dado-valor" id="dadoPlaca">-</span>
+                        </div>
+                        <div class="dado-item">
+                            <span class="dado-label">Data Saída:</span>
+                            <span class="dado-valor" id="dadoDataSaida">-</span>
+                        </div>
+                        <div class="dado-item">
+                            <span class="dado-label">Cluster:</span>
+                            <span class="dado-valor" id="dadoCluster">-</span>
+                        </div>
+                        <div class="dado-item">
+                            <span class="dado-label">Teve Compra de Peça:</span>
+                            <span class="dado-valor" id="dadoCompraPeca">-</span>
+                        </div>
+                        <div class="dado-item">
+                            <span class="dado-label">Regional:</span>
+                            <span class="dado-valor" id="dadoRegional">-</span>
+                        </div>
+                        <div class="dado-item">
+                            <span class="dado-label">Pós Contato:</span>
+                            <span class="dado-valor" id="dadoPosContato">-</span>
+                        </div>
+                        <div class="dado-item">
+                            <span class="dado-label">Serviço Principal:</span>
+                            <span class="dado-valor" id="dadoServicoPrincipal">-</span>
+                        </div>
+                        <div class="dado-item">
+                            <span class="dado-label">Data Envio Pesquisa:</span>
+                            <span class="dado-valor" id="dadoDataEnvioPesquisa">-</span>
+                        </div>
+                        <div class="dado-item">
+                            <span class="dado-label">Ramo Fornecedor:</span>
+                            <span class="dado-valor" id="dadoRamoFornec">-</span>
+                        </div>
+                        <div class="dado-item">
+                            <span class="dado-label">Tel Cliente:</span>
+                            <span class="dado-valor" id="dadoTelCliente">-</span>
+                        </div>
+                        <div class="dado-item full-width">
+                            <span class="dado-label">Humor do Cliente:</span>
+                            <span class="dado-valor" id="dadoHumorCliente">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Último Monitoramento -->
+                <div class="secao-dados">
+                    <div class="secao-header">
+                        <h3>Último Monitoramento</h3>
+                        <button id="btnHistorico" class="btn-historico" onclick="abrirHistorico()" style="display: none;">
+                            📋 Histórico de Contatos
+                        </button>
+                    </div>
+                    <div class="ultimo-monitoramento" id="ultimoMonitoramento">
+                        <p class="sem-registro">Registro de contato não realizado</p>
+                    </div>
+                </div>
+
+                <!-- Registro de Contato -->
+                <div class="secao-dados">
+                    <h3>Registro de Contato</h3>
+                    <form id="formRegistroContato" class="form-registro">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="sucessoContato">Sucesso no contato:</label>
+                                <select id="sucessoContato" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Resolvido">Resolvido</option>
+                                    <option value="Sem sucesso">Sem sucesso</option>
+                                    <option value="Fora de atuação">Fora de atuação</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="disparoWhatsapp">Disparo WhatsApp:</label>
+                                <select id="disparoWhatsapp" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="SIM">SIM</option>
+                                    <option value="NÃO">NÃO</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="percepcao">Percepção:</label>
+                                <select id="percepcao" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Possível promotor">Possível promotor</option>
+                                    <option value="Possível detrator">Possível detrator</option>
+                                    <option value="Sem percepção">Sem percepção</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="humorContato">Humor do cliente no contato:</label>
+                                <select id="humorContato" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Feliz">😊 Feliz</option>
+                                    <option value="Neutro">😐 Neutro</option>
+                                    <option value="Triste">☹️ Triste</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="observacoes">Observações:</label>
+                            <textarea id="observacoes" rows="3" placeholder="Adicione observações sobre o contato..."></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="fecharMonitoramento()">Cancelar</button>
+                            <button type="submit" id="btnEnviarContato" class="btn-primary" disabled>Enviar Registro</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Histórico -->
+    <div id="modalHistorico" class="modal-overlay">
+        <div class="modal-historico">
+            <div class="modal-header-custom">
+                <h2>Histórico de Contatos</h2>
+                <button class="modal-close-custom" onclick="fecharHistorico()">&times;</button>
+            </div>
+            <div class="modal-body-custom">
+                <div id="historicoLista" class="historico-lista">
+                    <!-- Histórico carregado dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="analise.js"></script>
+</body>
+</html>

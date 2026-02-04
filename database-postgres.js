@@ -50,11 +50,16 @@ class DatabasePostgres {
           id SERIAL PRIMARY KEY,
           numero_ss TEXT UNIQUE NOT NULL,
           placa TEXT,
+          data_saida TIMESTAMP,
           humor_cliente TEXT,
           cluster TEXT,
           teve_compra_peca TEXT,
           regional TEXT,
+          pos_contato TEXT,
           servico_principal TEXT,
+          data_envio_pesquisa TIMESTAMP,
+          ramo_fornec TEXT,
+          tel_cliente TEXT,
           regiao TEXT,
           responsavel_id INTEGER REFERENCES usuarios(id),
           status TEXT DEFAULT 'pendente',
@@ -84,6 +89,20 @@ class DatabasePostgres {
           usuario_destino_id INTEGER REFERENCES usuarios(id),
           realizado_por_id INTEGER NOT NULL REFERENCES usuarios(id),
           data TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS contatos (
+          id SERIAL PRIMARY KEY,
+          ss_id INTEGER NOT NULL REFERENCES ss(id),
+          usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+          sucesso_contato TEXT NOT NULL,
+          disparo_whatsapp TEXT NOT NULL,
+          percepcao TEXT NOT NULL,
+          humor_contato TEXT NOT NULL,
+          observacoes TEXT,
+          criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
 

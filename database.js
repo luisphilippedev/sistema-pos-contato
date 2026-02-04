@@ -38,11 +38,16 @@ class Database {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           numero_ss TEXT UNIQUE NOT NULL,
           placa TEXT,
+          data_saida DATETIME,
           humor_cliente TEXT,
           cluster TEXT,
           teve_compra_peca TEXT,
           regional TEXT,
+          pos_contato TEXT,
           servico_principal TEXT,
+          data_envio_pesquisa DATETIME,
+          ramo_fornec TEXT,
+          tel_cliente TEXT,
           regiao TEXT,
           responsavel_id INTEGER,
           status TEXT DEFAULT 'pendente',
@@ -80,6 +85,23 @@ class Database {
           FOREIGN KEY (usuario_origem_id) REFERENCES usuarios(id),
           FOREIGN KEY (usuario_destino_id) REFERENCES usuarios(id),
           FOREIGN KEY (realizado_por_id) REFERENCES usuarios(id)
+        )
+      `);
+
+      // Tabela de Contatos/Monitoramentos
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS contatos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          ss_id INTEGER NOT NULL,
+          usuario_id INTEGER NOT NULL,
+          sucesso_contato TEXT NOT NULL,
+          disparo_whatsapp TEXT NOT NULL,
+          percepcao TEXT NOT NULL,
+          humor_contato TEXT NOT NULL,
+          observacoes TEXT,
+          criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (ss_id) REFERENCES ss(id),
+          FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
         )
       `);
 
