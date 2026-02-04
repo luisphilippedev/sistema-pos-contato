@@ -149,7 +149,7 @@ async function carregarFilaAtribuida() {
     }
 }
 
-// ===== SS'S FINALIZADAS (PROCESSADAS E VENCIDAS) =====
+// ===== SS'S VENCIDAS =====
 
 async function carregarSSProcessadas() {
     try {
@@ -163,17 +163,14 @@ async function carregarSSProcessadas() {
         tbody.innerHTML = '';
         
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">Nenhuma SS processada ou vencida ainda</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">Nenhuma SS vencida ainda</td></tr>';
             return;
         }
         
         data.forEach(ss => {
-            const statusClass = ss.status === 'vencida' ? 'status-vencida' : 'status-processada';
-            const statusText = ss.status === 'vencida' ? 'Vencida' : 'Monitorada';
-            
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><span class="badge ${statusClass}">${statusText}</span></td>
+                <td><span class="badge status-vencida">Vencida</span></td>
                 <td>${ss.numero_ss || '-'}</td>
                 <td>${ss.placa || '-'}</td>
                 <td>${ss.humor_cliente || '-'}</td>
@@ -195,7 +192,7 @@ async function carregarSSProcessadas() {
         });
         
     } catch (error) {
-        console.error('Erro ao carregar SS finalizadas:', error);
+        console.error('Erro ao carregar SS vencidas:', error);
     }
 }
 

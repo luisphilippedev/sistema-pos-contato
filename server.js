@@ -193,13 +193,13 @@ app.get('/api/minhas-ss', authenticateToken, async (req, res) => {
   }
 });
 
-// Listar SS's processadas e vencidas do usuário
+// Listar SS's finalizadas (apenas vencidas) do usuário
 app.get('/api/ss-finalizadas', authenticateToken, async (req, res) => {
   try {
     const ss = await db.query(`
       SELECT * FROM ss 
       WHERE responsavel_id = ? 
-      AND (status = 'processada' OR status = 'vencida')
+      AND status = 'vencida'
       ORDER BY criado_em DESC
       LIMIT 100
     `, [req.user.id]);
@@ -548,8 +548,8 @@ app.post('/api/ss/:id/contato', authenticateToken, async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [id, req.user.id, sucesso_contato, disparo_whatsapp, percepcao, humor_contato, observacoes]);
     
-    // Marcar SS como processada
-    await db.run('UPDATE ss SET status = ? WHERE id = ?', ['processada', id]);
+    // SS permanece 'pendente' até vencer ou cliente responder NPS
+    // Não marcar como processada aqui
     
     // Atualizar contatos realizados do dia
     const hoje = new Date().toISOString().split('T')[0];
