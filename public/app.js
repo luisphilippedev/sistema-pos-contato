@@ -2,12 +2,12 @@
 const API_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:3000/api' 
   : `${window.location.origin}/api`;
-let token = localStorage.getItem('token');
 let usuarioLogado = null;
 
 // ===== UTILITÁRIOS =====
 
 function headers() {
+    const token = localStorage.getItem('token');
     return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -60,9 +60,8 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             throw new Error(data.error || 'Erro ao fazer login');
         }
         
-        token = data.token;
         usuarioLogado = data.usuario;
-        localStorage.setItem('token', token);
+        localStorage.setItem('token', data.token);
         localStorage.setItem('usuario', JSON.stringify(usuarioLogado));
         
         inicializarSistema();
