@@ -254,10 +254,10 @@
 .modal-monitoramento {
     background: var(--branco);
     border-radius: 16px;
-    width: 90%;
-    max-width: 900px;
-    max-height: 90vh;
-    overflow-y: auto;
+    width: 95%;
+    max-width: 1400px;
+    max-height: fit-content;
+    overflow-y: visible;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.4s ease;
 }

@@ -167,9 +167,22 @@ app.get('/api/ss/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Listar SS's atribuídas ao usuário
+// Listar SS's atribuídas ao usuário (pendentes e vencidas)
 app.get('/api/minhas-ss', authenticateToken, async (req, res) => {
   try {
+    // Primeiro, marcar SS's vencidas (mais de 4 dias desde data_envio_pesquisa)
+    const quatroDiasAtras = new Date();
+    quatroDiasAtras.setDate(quatroDiasAtras.getDate() - 4);
+    
+    await db.run(`
+      UPDATE ss 
+      SET status = 'vencida' 
+      WHERE status = 'pendente' 
+      AND data_envio_pesquisa IS NOT NULL 
+      AND data_envio_pesquisa < ?
+    `, [quatroDiasAtras.toISOString()]);
+    
+    // Buscar apenas SS's pendentes (não vencidas, não processadas)
     const ss = await db.query(
       'SELECT * FROM ss WHERE responsavel_id = ? AND status = "pendente" ORDER BY criado_em DESC',
       [req.user.id]
@@ -180,22 +193,38 @@ app.get('/api/minhas-ss', authenticateToken, async (req, res) => {
   }
 });
 
-// Listar SS's processadas
+// Listar SS's processadas e vencidas do usuário
+app.get('/api/ss-finalizadas', authenticateToken, async (req, res) => {
+  try {
+    const ss = await db.query(`
+      SELECT * FROM ss 
+      WHERE responsavel_id = ? 
+      AND (status = 'processada' OR status = 'vencida')
+      ORDER BY criado_em DESC
+      LIMIT 100
+    `, [req.user.id]);
+    res.json(ss);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Listar SS's processadas (legacy - para relatórios)
 app.get('/api/ss-processadas', authenticateToken, async (req, res) => {
   try {
     const ss = await db.query(`
       SELECT s.*, u.nome as responsavel_nome 
       FROM ss s 
       LEFT JOIN usuarios u ON s.responsavel_id = u.id 
-      WHERE s.status = "processado" 
-      ORDER BY s.processado_em DESC
+      WHERE s.status = "processado" OR s.status = "processada"
+      ORDER BY s.criado_em DESC
       LIMIT 100
     `);
     res.json(ss);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-});
+});;
 
 // Buscar SS específica
 app.get('/api/ss/buscar', authenticateToken, async (req, res) => {
@@ -518,6 +547,9 @@ app.post('/api/ss/:id/contato', authenticateToken, async (req, res) => {
       INSERT INTO contatos (ss_id, usuario_id, sucesso_contato, disparo_whatsapp, percepcao, humor_contato, observacoes)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [id, req.user.id, sucesso_contato, disparo_whatsapp, percepcao, humor_contato, observacoes]);
+    
+    // Marcar SS como processada
+    await db.run('UPDATE ss SET status = ? WHERE id = ?', ['processada', id]);
     
     // Atualizar contatos realizados do dia
     const hoje = new Date().toISOString().split('T')[0];

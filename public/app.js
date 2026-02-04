@@ -149,11 +149,11 @@ async function carregarFilaAtribuida() {
     }
 }
 
-// ===== SS'S PROCESSADAS =====
+// ===== SS'S FINALIZADAS (PROCESSADAS E VENCIDAS) =====
 
 async function carregarSSProcessadas() {
     try {
-        const response = await fetch(`${API_URL}/ss-processadas`, {
+        const response = await fetch(`${API_URL}/ss-finalizadas`, {
             headers: headers()
         });
         
@@ -163,14 +163,17 @@ async function carregarSSProcessadas() {
         tbody.innerHTML = '';
         
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">Nenhuma SS processada ainda</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">Nenhuma SS processada ou vencida ainda</td></tr>';
             return;
         }
         
         data.forEach(ss => {
+            const statusClass = ss.status === 'vencida' ? 'status-vencida' : 'status-processada';
+            const statusText = ss.status === 'vencida' ? 'Vencida' : 'Monitorada';
+            
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${ss.id}</td>
+                <td><span class="badge ${statusClass}">${statusText}</span></td>
                 <td>${ss.numero_ss || '-'}</td>
                 <td>${ss.placa || '-'}</td>
                 <td>${ss.humor_cliente || '-'}</td>
@@ -178,15 +181,21 @@ async function carregarSSProcessadas() {
                 <td>${ss.teve_compra_peca || '-'}</td>
                 <td>${ss.regional || '-'}</td>
                 <td>${ss.servico_principal || '-'}</td>
-                <td>${ss.regiao || '-'}</td>
-                <td>${ss.responsavel_nome || '-'}</td>
-                <td>${ss.detalhes || '-'}</td>
+                <td>
+                    <button class="btn-ver-detalhes" onclick="verDetalhesMonitoramento(${ss.id})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2"/>
+                            <circle cx="12" cy="12" r="3" stroke-width="2"/>
+                        </svg>
+                        Ver detalhes
+                    </button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
         
     } catch (error) {
-        console.error('Erro ao carregar SS processadas:', error);
+        console.error('Erro ao carregar SS finalizadas:', error);
     }
 }
 
@@ -529,6 +538,59 @@ document.getElementById('usuarioForm').addEventListener('submit', async (e) => {
 
 document.getElementById('btnIniciarAnalise').addEventListener('click', () => {
     window.location.href = '/analise.html';
+});
+
+// ===== VER DETALHES DO MONITORAMENTO =====
+
+async function verDetalhesMonitoramento(ssId) {
+    try {
+        const response = await fetch(`${API_URL}/ss/${ssId}/contatos`, {
+            headers: headers()
+        });
+        
+        const contatos = await response.json();
+        
+        if (contatos.length === 0) {
+            alert('Esta SS não possui monitoramentos registrados.');
+            return;
+        }
+        
+        let mensagem = '📋 HISTÓRICO DE MONITORAMENTOS\n\n';
+        
+        contatos.forEach((contato, index) => {
+            mensagem += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+            mensagem += `Contato #${contatos.length - index}\n`;
+            mensagem += `Data: ${formatarData(contato.criado_em)}\n`;
+            mensagem += `Sucesso: ${contato.sucesso_contato}\n`;
+            mensagem += `WhatsApp: ${contato.disparo_whatsapp}\n`;
+            mensagem += `Percepção: ${contato.percepcao}\n`;
+            mensagem += `Humor: ${contato.humor_contato}\n`;
+            if (contato.observacoes) {
+                mensagem += `Observações: ${contato.observacoes}\n`;
+            }
+            mensagem += '\n';
+        });
+        
+        alert(mensagem);
+        
+    } catch (error) {
+        alert('Erro ao carregar detalhes: ' + error.message);
+    }
+}
+
+function formatarData(data) {
+    if (!data) return '-';
+    const d = new Date(data);
+    return d.toLocaleString('pt-BR');
+}
+
+// ===== BOTÃO VER MONITORAMENTOS =====
+
+document.getElementById('btnMonitoramentos')?.addEventListener('click', () => {
+    const tableSection = document.querySelector('.table-section');
+    if (tableSection) {
+        tableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 });
 
 // ===== POPULAR DADOS DE TESTE =====

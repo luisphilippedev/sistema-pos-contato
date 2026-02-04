@@ -357,9 +357,11 @@ async function enviarRegistroContato() {
             throw new Error(result.error || 'Erro ao registrar contato');
         }
         
-        alert('✅ Contato registrado com sucesso!');
+        alert('✅ Contato registrado com sucesso! SS marcada como processada.');
         fecharMonitoramento();
-        await carregarSSsUsuario(); // Recarregar lista
+        // Redirecionar para home após processar
+        window.location.href = '/';
+        
         
     } catch (error) {
         alert('❌ ' + error.message);

@@ -433,6 +433,56 @@ body {
     color: var(--texto-principal);
 }
 
+/* ===== BADGES DE STATUS ===== */
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-processada {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #66bb6a;
+}
+
+.status-vencida {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ef5350;
+}
+
+/* ===== BOTÃO VER DETALHES ===== */
+.btn-ver-detalhes {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--verde-escuro);
+    color: var(--branco);
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-ver-detalhes:hover {
+    background: var(--verde-claro);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(45, 95, 63, 0.3);
+}
+
+.btn-ver-detalhes svg {
+    width: 16px;
+    height: 16px;
+}
+
 /* ===== MODAIS ===== */
 .modal {
     display: none;
