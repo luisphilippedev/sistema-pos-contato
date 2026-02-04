@@ -540,9 +540,13 @@ document.getElementById('btnPopularDados')?.addEventListener('click', async () =
     }
     
     try {
+        const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/popular-dados-teste`, {
             method: 'POST',
-            headers: headers()
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
         });
         
         const data = await response.json();
