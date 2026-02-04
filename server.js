@@ -182,11 +182,17 @@ app.get('/api/minhas-ss', authenticateToken, async (req, res) => {
       AND data_envio_pesquisa < ?
     `, [quatroDiasAtras.toISOString()]);
     
-    // Buscar apenas SS's pendentes (não vencidas, não processadas)
-    const ss = await db.query(
-      'SELECT * FROM ss WHERE responsavel_id = ? AND status = "pendente" ORDER BY criado_em DESC',
-      [req.user.id]
-    );
+    // Buscar SS's pendentes com contagem de monitoramentos
+    const ss = await db.query(`
+      SELECT s.*, 
+             COUNT(c.id) as total_monitoramentos
+      FROM ss s
+      LEFT JOIN contatos c ON s.id = c.ss_id
+      WHERE s.responsavel_id = ? AND s.status = "pendente"
+      GROUP BY s.id
+      ORDER BY s.criado_em DESC
+    `, [req.user.id]);
+    
     res.json(ss);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -527,10 +533,13 @@ app.get('/api/exportar-ss', authenticateToken, authenticateLideranca, async (req
 app.get('/api/ss/:id/contatos', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const contatos = await db.query(
-      'SELECT * FROM contatos WHERE ss_id = ? ORDER BY criado_em DESC',
-      [id]
-    );
+    const contatos = await db.query(`
+      SELECT c.*, u.nome as responsavel_nome
+      FROM contatos c
+      LEFT JOIN usuarios u ON c.usuario_id = u.id
+      WHERE c.ss_id = ?
+      ORDER BY c.criado_em DESC
+    `, [id]);
     res.json(contatos);
   } catch (error) {
     res.status(500).json({ error: error.message });

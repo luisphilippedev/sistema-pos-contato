@@ -221,6 +221,25 @@
     transform: scale(1.05);
 }
 
+/* ===== COLUNA MONITORAMENTOS ===== */
+.monit-feito {
+    color: #2e7d32;
+    font-weight: 700;
+    font-size: 15px;
+    background: #e8f5e9;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.monit-pendente {
+    color: #f57c00;
+    font-weight: 700;
+    font-size: 15px;
+    background: #fff3e0;
+    padding: 8px;
+    border-radius: 6px;
+}
+
 /* ===== MODAL OVERLAY ===== */
 .modal-overlay {
     display: none;

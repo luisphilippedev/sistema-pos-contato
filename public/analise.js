@@ -83,7 +83,7 @@ function renderizarTabela(ssList) {
     if (ssList.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="9" style="text-align: center; padding: 40px; color: #999;">
+                <td colspan="10" style="text-align: center; padding: 40px; color: #999;">
                     Nenhuma SS atribuída no momento
                 </td>
             </tr>
@@ -92,6 +92,10 @@ function renderizarTabela(ssList) {
     }
     
     ssList.forEach(ss => {
+        const totalMonit = ss.total_monitoramentos || 0;
+        const monitClass = totalMonit > 0 ? 'monit-feito' : 'monit-pendente';
+        const monitText = totalMonit > 0 ? `✅ ${totalMonit}` : '⚠️ 0';
+        
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${ss.numero_ss || '-'}</td>
@@ -101,6 +105,7 @@ function renderizarTabela(ssList) {
             <td>${ss.regional || '-'}</td>
             <td>${ss.servico_principal || '-'}</td>
             <td>${formatarData(ss.data_envio_pesquisa)}</td>
+            <td class="${monitClass}">${monitText}</td>
             <td class="prazo-timer">${renderizarPrazo(ss.data_envio_pesquisa)}</td>
             <td>
                 <button class="btn-monitorar" onclick="abrirMonitoramento(${ss.id})">
@@ -224,6 +229,7 @@ async function carregarUltimoMonitoramento(ssId) {
             const ultimo = contatos[0];
             container.innerHTML = `
                 <div class="monitoramento-item">
+                    <p><strong>Responsável:</strong> ${ultimo.responsavel_nome || 'N/A'}</p>
                     <p><strong>Data:</strong> ${formatarData(ultimo.criado_em)}</p>
                     <p><strong>Sucesso:</strong> ${ultimo.sucesso_contato}</p>
                     <p><strong>WhatsApp:</strong> ${ultimo.disparo_whatsapp}</p>
@@ -279,6 +285,7 @@ async function abrirHistorico() {
                         <small>${formatarData(contato.criado_em)}</small>
                     </div>
                     <div class="historico-card-body">
+                        <p><strong>Responsável:</strong> ${contato.responsavel_nome || 'N/A'}</p>
                         <p><strong>Sucesso no contato:</strong> ${contato.sucesso_contato}</p>
                         <p><strong>Disparo WhatsApp:</strong> ${contato.disparo_whatsapp}</p>
                         <p><strong>Percepção:</strong> ${contato.percepcao}</p>
