@@ -95,6 +95,7 @@ function inicializarSistema() {
     if (usuarioLogado.perfil === 'lideranca') {
         document.getElementById('btnRedistribuir').style.display = 'flex';
         document.getElementById('btnUsuarios').style.display = 'flex';
+        document.getElementById('btnPopularDados').style.display = 'flex';
     }
     
     // Carregar dados
@@ -529,6 +530,35 @@ document.getElementById('usuarioForm').addEventListener('submit', async (e) => {
 
 document.getElementById('btnIniciarAnalise').addEventListener('click', () => {
     window.location.href = '/analise.html';
+});
+
+// ===== POPULAR DADOS DE TESTE =====
+
+document.getElementById('btnPopularDados')?.addEventListener('click', async () => {
+    if (!confirm('Isso vai criar 50 SS\'s de teste no banco de dados. Deseja continuar?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/popular-dados-teste`, {
+            method: 'POST',
+            headers: headers()
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Erro ao popular dados');
+        }
+        
+        mostrarSucesso(`✅ ${data.inseridos} SS's criadas com sucesso!\n\nAcesse "Iniciar Análise" para visualizar.`);
+        
+        // Recarregar dados
+        carregarFilaAtribuida();
+        
+    } catch (error) {
+        mostrarErro('Erro ao popular dados: ' + error.message);
+    }
 });
 
 // ===== VERIFICAR LOGIN AO CARREGAR =====

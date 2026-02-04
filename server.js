@@ -319,6 +319,109 @@ app.get('/api/minha-fila', authenticateToken, async (req, res) => {
   }
 });
 
+// ===== POPULAR DADOS DE TESTE =====
+
+app.post('/api/popular-dados-teste', authenticateToken, authenticateLideranca, async (req, res) => {
+  try {
+    const clusters = ['SERVIÇO COMPLEXO', 'SERVIÇO MÉDIO', 'SERVIÇO RÁPIDO', 'SERVIÇO ESPECIAL'];
+    const regionais = ['RIO', 'SÃO PAULO', 'BRASÍLIA', 'MINAS GERAIS', 'BAHIA', 'PARANÁ', 'RIO GRANDE DO SUL'];
+    const servicosPrincipais = ['REVISÃO', 'TROCA DE ÓLEO', 'ALINHAMENTO', 'BALANCEAMENTO', 'FREIOS', 'SUSPENSÃO', 'AR CONDICIONADO'];
+    const posContato = ['PÓS CONTATO SEM SUCESSO', 'PÓS CONTATO COM SUCESSO', 'PÓS CONTATO PARCIAL'];
+    const ramoFornec = ['CONCESSIONÁRIA', 'OFICINA INDEPENDENTE', 'AUTO CENTER', 'OFICINA ESPECIALIZADA'];
+    const humores = [
+      'Sem detração Registrada. Humor Registrado: Satisfeito',
+      'Sem detração Registrada. Humor Registrado: Neutro',
+      'Detração Registrada. Humor: Insatisfeito',
+      'Sem detração Registrada. Humor Registrado: Não-serviço - Reagendamento e cancelamento de agendamento'
+    ];
+    const compraPeca = ['Sim', 'Não', 'Não é Serviço Médio'];
+
+    function gerarPlaca() {
+      const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const numeros = '0123456789';
+      let placa = '';
+      for (let i = 0; i < 3; i++) {
+        placa += letras.charAt(Math.floor(Math.random() * letras.length));
+      }
+      placa += numeros.charAt(Math.floor(Math.random() * numeros.length));
+      for (let i = 0; i < 3; i++) {
+        placa += numeros.charAt(Math.floor(Math.random() * numeros.length));
+      }
+      return placa;
+    }
+
+    function gerarTelefone() {
+      const ddd = ['11', '21', '31', '41', '51', '61', '71', '81', '91'];
+      return '55' + ddd[Math.floor(Math.random() * ddd.length)] + '9' + 
+             Math.floor(10000000 + Math.random() * 90000000);
+    }
+
+    function gerarDataAleatoria(diasAtras) {
+      const data = new Date();
+      data.setDate(data.getDate() - Math.floor(Math.random() * diasAtras));
+      data.setHours(Math.floor(Math.random() * 24));
+      data.setMinutes(Math.floor(Math.random() * 60));
+      data.setSeconds(Math.floor(Math.random() * 60));
+      return data.toISOString();
+    }
+
+    // Buscar usuários
+    const usuarios = await db.query('SELECT id FROM usuarios');
+    
+    if (usuarios.length === 0) {
+      return res.status(400).json({ error: 'Nenhum usuário encontrado. Crie usuários primeiro!' });
+    }
+
+    let inseridos = 0;
+    let erros = 0;
+
+    // Criar 50 SS's
+    for (let i = 1; i <= 50; i++) {
+      const numero_ss = `2SPX${String.fromCharCode(65 + (i % 26))}${String.fromCharCode(65 + Math.floor(i / 26))}/${i}`;
+      const placa = gerarPlaca();
+      const data_saida = gerarDataAleatoria(10);
+      const data_envio_pesquisa = Math.random() > 0.3 ? gerarDataAleatoria(5) : null;
+      const cluster = clusters[Math.floor(Math.random() * clusters.length)];
+      const regional = regionais[Math.floor(Math.random() * regionais.length)];
+      const servico_principal = servicosPrincipais[Math.floor(Math.random() * servicosPrincipais.length)];
+      const pos_contato_val = posContato[Math.floor(Math.random() * posContato.length)];
+      const ramo_fornec = ramoFornec[Math.floor(Math.random() * ramoFornec.length)];
+      const humor_cliente = humores[Math.floor(Math.random() * humores.length)];
+      const teve_compra_peca = compraPeca[Math.floor(Math.random() * compraPeca.length)];
+      const tel_cliente = gerarTelefone();
+      const fila = i <= 20 ? 'pos_rapidos_medios' : (i <= 40 ? 'pos_complexo' : 'pos_especiais');
+      const responsavel_id = usuarios[Math.floor(Math.random() * usuarios.length)].id;
+      
+      try {
+        await db.run(`
+          INSERT INTO ss (
+            numero_ss, placa, data_saida, data_envio_pesquisa, cluster, regional,
+            servico_principal, pos_contato, ramo_fornec, humor_cliente, teve_compra_peca,
+            tel_cliente, fila, responsavel_id, status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendente')
+        `, [
+          numero_ss, placa, data_saida, data_envio_pesquisa, cluster, regional,
+          servico_principal, pos_contato_val, ramo_fornec, humor_cliente, teve_compra_peca,
+          tel_cliente, fila, responsavel_id
+        ]);
+        inseridos++;
+      } catch (error) {
+        erros++;
+      }
+    }
+    
+    res.json({ 
+      message: `Dados de teste criados com sucesso!`,
+      inseridos,
+      erros,
+      total: 50
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ===== ROTAS DE IMPORTAÇÃO/EXPORTAÇÃO =====
 
 // Importar planilha de SS's
