@@ -46,7 +46,81 @@ async function inicializarAnalise() {
     
     // Setup form validation
     setupFormValidation();
+    
+    // Setup filtros
+    setupFiltros();
 }
+
+// ===== FILTROS E ORDENAÇÃO =====
+
+function setupFiltros() {
+    ['filtroSS', 'filtroPlaca', 'filtroDataSaida', 'filtroCluster', 'filtroRegional', 'filtroServico', 'filtroDataPesquisa'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', aplicarFiltrosEOrdenacao);
+    });
+}
+
+function aplicarFiltrosEOrdenacao() {
+    let listaFiltrada = [...ssListaOriginal];
+    
+    // Aplicar filtros
+    const filtroSS = document.getElementById('filtroSS')?.value.toLowerCase();
+    const filtroPlaca = document.getElementById('filtroPlaca')?.value.toLowerCase();
+    const filtroDataSaida = document.getElementById('filtroDataSaida')?.value;
+    const filtroCluster = document.getElementById('filtroCluster')?.value.toLowerCase();
+    const filtroRegional = document.getElementById('filtroRegional')?.value.toLowerCase();
+    const filtroServico = document.getElementById('filtroServico')?.value.toLowerCase();
+    const filtroDataPesquisa = document.getElementById('filtroDataPesquisa')?.value;
+    
+    if (filtroSS) {
+        listaFiltrada = listaFiltrada.filter(ss => (ss.numero_ss || '').toLowerCase().includes(filtroSS));
+    }
+    if (filtroPlaca) {
+        listaFiltrada = listaFiltrada.filter(ss => (ss.placa || '').toLowerCase().includes(filtroPlaca));
+    }
+    if (filtroDataSaida) {
+        listaFiltrada = listaFiltrada.filter(ss => ss.data_saida && ss.data_saida.startsWith(filtroDataSaida));
+    }
+    if (filtroCluster) {
+        listaFiltrada = listaFiltrada.filter(ss => (ss.cluster || '').toLowerCase().includes(filtroCluster));
+    }
+    if (filtroRegional) {
+        listaFiltrada = listaFiltrada.filter(ss => (ss.regional || '').toLowerCase().includes(filtroRegional));
+    }
+    if (filtroServico) {
+        listaFiltrada = listaFiltrada.filter(ss => (ss.servico_principal || '').toLowerCase().includes(filtroServico));
+    }
+    if (filtroDataPesquisa) {
+        listaFiltrada = listaFiltrada.filter(ss => ss.data_envio_pesquisa && ss.data_envio_pesquisa.startsWith(filtroDataPesquisa));
+    }
+    
+    // Ordenar por prazo
+    listaFiltrada.sort((a, b) => {
+        const prazoA = calcularDiasRestantes(a.data_envio_pesquisa);
+        const prazoB = calcularDiasRestantes(b.data_envio_pesquisa);
+        return ordenacaoAtual === 'asc' ? prazoA - prazoB : prazoB - prazoA;
+    });
+    
+    renderizarTabela(listaFiltrada);
+}
+
+function calcularDiasRestantes(dataEnvioPesquisa) {
+    if (!dataEnvioPesquisa) return 9999; // Sem data = vai pro final
+    const prazoMaximo = 4 * 24 * 60 * 60 * 1000; // 4 dias em ms
+    const dataEnvio = new Date(dataEnvioPesquisa);
+    const dataLimite = new Date(dataEnvio.getTime() + prazoMaximo);
+    const agora = new Date();
+    const diff = dataLimite - agora;
+    return diff / (1000 * 60 * 60); // retorna horas restantes
+}
+
+function toggleOrdenacao() {
+    ordenacaoAtual = ordenacaoAtual === 'asc' ? 'desc' : 'asc';
+    document.getElementById('sortIcon').textContent = ordenacaoAtual === 'asc' ? '🔽' : '🔼';
+    aplicarFiltrosEOrdenacao();
+}
+
+let ssListaOriginal = [];
+let ordenacaoAtual = 'asc'; // mais próximo de vencer primeiro
 
 function formatarFila(fila) {
     const filas = {
@@ -67,8 +141,8 @@ async function carregarSSsUsuario() {
             }
         });
         
-        const ssList = await response.json();
-        renderizarTabela(ssList);
+        ssListaOriginal = await response.json();
+        aplicarFiltrosEOrdenacao();
         
     } catch (error) {
         console.error('Erro ao carregar SS:', error);

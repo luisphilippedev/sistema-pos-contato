@@ -50,7 +50,7 @@
             <div class="ss-table-wrapper">
                 <table class="ss-table">
                     <thead>
-                        <tr>
+                        <tr class="header-row">
                             <th>SS</th>
                             <th>Placa</th>
                             <th>Data Saída</th>
@@ -59,8 +59,22 @@
                             <th>Serviço Principal</th>
                             <th>Data Envio Pesquisa</th>
                             <th>Monitoramentos</th>
-                            <th>Prazo</th>
+                            <th class="sortable" onclick="toggleOrdenacao()">
+                                Prazo <span id="sortIcon">🔽</span>
+                            </th>
                             <th>Ação</th>
+                        </tr>
+                        <tr class="filter-row">
+                            <th><input type="text" id="filtroSS" placeholder="Filtrar SS" class="filter-input"></th>
+                            <th><input type="text" id="filtroPlaca" placeholder="Filtrar Placa" class="filter-input"></th>
+                            <th><input type="date" id="filtroDataSaida" class="filter-input"></th>
+                            <th><input type="text" id="filtroCluster" placeholder="Filtrar Cluster" class="filter-input"></th>
+                            <th><input type="text" id="filtroRegional" placeholder="Filtrar Regional" class="filter-input"></th>
+                            <th><input type="text" id="filtroServico" placeholder="Filtrar Serviço" class="filter-input"></th>
+                            <th><input type="date" id="filtroDataPesquisa" class="filter-input"></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody id="ssTableBody">
