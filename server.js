@@ -574,6 +574,250 @@ app.post('/api/ss/:id/contato', authenticateToken, async (req, res) => {
   }
 });
 
+// ===== ENDPOINTS DE IMPORTAÇÃO =====
+
+// Importar planilha XLSX
+app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (req, res) => {
+  const fs = require('fs');
+  let logId = null;
+  
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+    }
+
+    // Ler planilha
+    const workbook = XLSX.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const dados = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+    // Validar colunas (primeira linha = cabeçalho)
+    const colunasEsperadas = [
+      'ss_data_saida_real',
+      'Cluster',
+      'regional',
+      'Ramo_Fornecedor',
+      'PosContato',
+      'Telefone_Cliente',
+      'Servico_Principal',
+      'placa',
+      'ss_seq',
+      'HumorCliente',
+      'Data_Envio_Formatada',
+      'Responsavel',
+      'Percepcao',
+      'Observacao',
+      'Fila_Especial?',
+      'Score_Priorizacao',
+      'Pesquisa_respondida'
+    ];
+
+    const cabecalho = dados[0];
+    if (!cabecalho || cabecalho.length < 17) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ 
+        error: 'Planilha inválida: deve conter 17 colunas na ordem especificada' 
+      });
+    }
+
+    // Criar log de importação
+    const resultLog = await db.run(
+      `INSERT INTO logs_importacao (tipo, total_ss, sucesso, erros, usuario_id) 
+       VALUES (?, ?, ?, ?, ?)`,
+      ['manual', 0, 0, 0, req.user.id]
+    );
+    logId = resultLog.id || resultLog.lastID;
+
+    // Buscar usuários online para distribuição
+    const usuariosOnline = await db.all(
+      `SELECT id, nome, fila FROM usuarios WHERE status = 'online' ORDER BY nome`
+    );
+
+    if (usuariosOnline.length === 0) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ 
+        error: 'Nenhum usuário online para receber as SS\'s' 
+      });
+    }
+
+    let totalProcessadas = 0;
+    let sucessos = 0;
+    let erros = 0;
+
+    // Processar cada linha (ignorar cabeçalho)
+    for (let i = 1; i < dados.length; i++) {
+      const linha = dados[i];
+      
+      // Ignorar linhas vazias
+      if (!linha || linha.length === 0 || !linha[8]) continue;
+
+      try {
+        const numeroSS = String(linha[8] || '').trim();
+        const placa = String(linha[7] || '').trim();
+        const cluster = String(linha[1] || '').trim();
+        const regional = String(linha[2] || '').trim();
+        const servico = String(linha[6] || '').trim();
+        const dataSaida = linha[0] || '';
+        const pesquisaRespondida = String(linha[16] || '').trim().toLowerCase();
+
+        if (!numeroSS) {
+          erros++;
+          await db.run(
+            `INSERT INTO detalhes_importacao (log_id, status, numero_ss, mensagem) 
+             VALUES (?, ?, ?, ?)`,
+            [logId, 'erro', numeroSS, 'Número da SS vazio']
+          );
+          continue;
+        }
+
+        // Verificar se SS já existe
+        const ssExistente = await db.get(
+          `SELECT id FROM ss WHERE numero_ss = ?`,
+          [numeroSS]
+        );
+
+        if (ssExistente) {
+          erros++;
+          await db.run(
+            `INSERT INTO detalhes_importacao (log_id, status, numero_ss, placa, cluster, mensagem) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [logId, 'erro', numeroSS, placa, cluster, 'SS já existe no sistema']
+          );
+          continue;
+        }
+
+        // Distribuir para usuário online da mesma fila
+        const usuariosFila = usuariosOnline.filter(u => u.fila === cluster);
+        const usuarioResponsavel = usuariosFila.length > 0
+          ? usuariosFila[totalProcessadas % usuariosFila.length]
+          : usuariosOnline[totalProcessadas % usuariosOnline.length];
+
+        // Definir status baseado em Pesquisa_respondida
+        const status = pesquisaRespondida === 'sim' ? 'respondida' : 'pendente';
+
+        // Inserir SS
+        await db.run(
+          `INSERT INTO ss (
+            numero_ss, placa, regional, servico_principal, data_saida, 
+            data_envio_pesquisa, cluster, responsavel_id, status, criado_em
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+          [
+            numeroSS,
+            placa,
+            regional,
+            servico,
+            dataSaida,
+            linha[10] || null, // Data_Envio_Formatada
+            cluster,
+            usuarioResponsavel.id,
+            status
+          ]
+        );
+
+        sucessos++;
+        await db.run(
+          `INSERT INTO detalhes_importacao (log_id, status, numero_ss, placa, cluster, responsavel, mensagem) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [logId, 'sucesso', numeroSS, placa, cluster, usuarioResponsavel.nome, 
+           `Distribuído para ${usuarioResponsavel.nome}`]
+        );
+
+      } catch (error) {
+        erros++;
+        await db.run(
+          `INSERT INTO detalhes_importacao (log_id, status, numero_ss, mensagem) 
+           VALUES (?, ?, ?, ?)`,
+          [logId, 'erro', linha[8] || '', error.message]
+        );
+      }
+
+      totalProcessadas++;
+    }
+
+    // Atualizar log
+    await db.run(
+      `UPDATE logs_importacao SET total_ss = ?, sucesso = ?, erros = ? WHERE id = ?`,
+      [totalProcessadas, sucessos, erros, logId]
+    );
+
+    // Remover arquivo temporário
+    fs.unlinkSync(req.file.path);
+
+    res.json({
+      message: 'Importação concluída',
+      total: totalProcessadas,
+      sucesso: sucessos,
+      erros: erros,
+      logId: logId
+    });
+
+  } catch (error) {
+    // Limpar arquivo em caso de erro
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    
+    console.error('Erro na importação:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Listar logs de importação
+app.get('/api/logs-importacao', authenticateToken, async (req, res) => {
+  try {
+    const logs = await db.all(`
+      SELECT 
+        l.*,
+        u.nome as usuario_nome
+      FROM logs_importacao l
+      LEFT JOIN usuarios u ON l.usuario_id = u.id
+      ORDER BY l.criado_em DESC
+    `);
+    
+    res.json(logs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Obter log específico
+app.get('/api/logs-importacao/:id', authenticateToken, async (req, res) => {
+  try {
+    const log = await db.get(`
+      SELECT 
+        l.*,
+        u.nome as usuario_nome
+      FROM logs_importacao l
+      LEFT JOIN usuarios u ON l.usuario_id = u.id
+      WHERE l.id = ?
+    `, [req.params.id]);
+    
+    if (!log) {
+      return res.status(404).json({ error: 'Log não encontrado' });
+    }
+    
+    res.json(log);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Obter detalhes de um log
+app.get('/api/logs-importacao/:id/detalhes', authenticateToken, async (req, res) => {
+  try {
+    const detalhes = await db.all(`
+      SELECT * FROM detalhes_importacao 
+      WHERE log_id = ?
+      ORDER BY id ASC
+    `, [req.params.id]);
+    
+    res.json(detalhes);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);

@@ -105,6 +105,36 @@ class Database {
         )
       `);
 
+      // Tabela de Logs de Importação
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS logs_importacao (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          tipo TEXT NOT NULL,
+          total_ss INTEGER DEFAULT 0,
+          sucesso INTEGER DEFAULT 0,
+          erros INTEGER DEFAULT 0,
+          usuario_id INTEGER,
+          criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        )
+      `);
+
+      // Tabela de Detalhes de Importação
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS detalhes_importacao (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          log_id INTEGER NOT NULL,
+          status TEXT NOT NULL,
+          numero_ss TEXT,
+          placa TEXT,
+          cluster TEXT,
+          responsavel TEXT,
+          mensagem TEXT,
+          criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (log_id) REFERENCES logs_importacao(id)
+        )
+      `);
+
       // Criar usuário admin padrão
       this.criarUsuarioAdmin();
     });
@@ -133,11 +163,16 @@ class Database {
     });
   }
 
+  all(sql, params = []) {
+    // Alias para query() para compatibilidade
+    return this.query(sql, params);
+  }
+
   run(sql, params = []) {
     return new Promise((resolve, reject) => {
       this.db.run(sql, params, function(err) {
         if (err) reject(err);
-        else resolve({ id: this.lastID, changes: this.changes });
+        else resolve({ id: this.lastID, changes: this.changes, lastID: this.lastID });
       });
     });
   }

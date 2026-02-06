@@ -106,6 +106,32 @@ class DatabasePostgres {
         )
       `);
 
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS logs_importacao (
+          id SERIAL PRIMARY KEY,
+          tipo TEXT NOT NULL,
+          total_ss INTEGER DEFAULT 0,
+          sucesso INTEGER DEFAULT 0,
+          erros INTEGER DEFAULT 0,
+          usuario_id INTEGER REFERENCES usuarios(id),
+          criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await this.pool.query(`
+        CREATE TABLE IF NOT EXISTS detalhes_importacao (
+          id SERIAL PRIMARY KEY,
+          log_id INTEGER NOT NULL REFERENCES logs_importacao(id),
+          status TEXT NOT NULL,
+          numero_ss TEXT,
+          placa TEXT,
+          cluster TEXT,
+          responsavel TEXT,
+          mensagem TEXT,
+          criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       await this.criarUsuarioAdmin();
     } catch (error) {
       console.error('Erro ao inicializar banco PostgreSQL:', error);
@@ -257,10 +283,11 @@ class DatabasePostgres {
     }
   }
 
-  async get(sql, params = []) {
-    if (this.pool) {
-      // PostgreSQL
-      let pgSql = sql;
+  async all(sql, params = []) {
+    // Alias para query() para compatibilidade
+    return this.query(sql, params);
+  }
+
       params.forEach((_, index) => {
         pgSql = pgSql.replace('?', `$${index + 1}`);
       });
