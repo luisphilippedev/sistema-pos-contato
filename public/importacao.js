@@ -52,10 +52,17 @@ function setupDragDrop() {
 }
 
 function setupFileInput() {
-    document.getElementById('fileInput').addEventListener('change', (e) => {
+    const fileInput = document.getElementById('fileInput');
+    
+    fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
             handleFile(e.target.files[0]);
         }
+    });
+    
+    // Click na área de upload abre o seletor de arquivo
+    document.getElementById('uploadArea').addEventListener('click', () => {
+        fileInput.click();
     });
 }
 
