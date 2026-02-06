@@ -149,7 +149,7 @@ async function carregarFilaAtribuida() {
     }
 }
 
-// ===== SS'S VENCIDAS =====
+// ===== SS'S PROCESSADAS (VENCIDAS E RESPONDIDAS) =====
 
 async function carregarSSProcessadas() {
     try {
@@ -163,14 +163,21 @@ async function carregarSSProcessadas() {
         tbody.innerHTML = '';
         
         if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">Nenhuma SS vencida ainda</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">Nenhuma SS processada ainda</td></tr>';
             return;
         }
         
         data.forEach(ss => {
+            let statusBadge = '';
+            if (ss.status === 'vencida') {
+                statusBadge = '<span class="badge status-vencida">Vencida</span>';
+            } else if (ss.status === 'respondida') {
+                statusBadge = '<span class="badge status-respondida">Respondida</span>';
+            }
+            
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><span class="badge status-vencida">Vencida</span></td>
+                <td>${statusBadge}</td>
                 <td>${ss.numero_ss || '-'}</td>
                 <td>${ss.placa || '-'}</td>
                 <td>${ss.humor_cliente || '-'}</td>
@@ -590,37 +597,12 @@ document.getElementById('btnMonitoramentos')?.addEventListener('click', () => {
     }
 });
 
-// ===== POPULAR DADOS DE TESTE =====
+// ===== IMPORTAR DADOS =====
 
-document.getElementById('btnPopularDados')?.addEventListener('click', async () => {
-    if (!confirm('Isso vai criar 50 SS\'s de teste no banco de dados. Deseja continuar?')) {
-        return;
-    }
-    
-    try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/popular-dados-teste`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro ao popular dados');
-        }
-        
-        mostrarSucesso(`✅ ${data.inseridos} SS's criadas com sucesso!\n\nAcesse "Iniciar Análise" para visualizar.`);
-        
-        // Recarregar dados
-        carregarFilaAtribuida();
-        
-    } catch (error) {
-        mostrarErro('Erro ao popular dados: ' + error.message);
-    }
+// ===== IMPORTAR DADOS =====
+
+document.getElementById('btnPopularDados')?.addEventListener('click', () => {
+    window.location.href = '/importacao.html';
 });
 
 // ===== VERIFICAR LOGIN AO CARREGAR =====
