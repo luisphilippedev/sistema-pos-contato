@@ -99,7 +99,15 @@ function formatarTamanho(bytes) {
 // ===== MODAIS =====
 
 function abrirImportacaoManual() {
-    document.getElementById('modalImportManual').classList.add('active');
+    console.log('Abrindo modal de importação...');
+    const modal = document.getElementById('modalImportManual');
+    console.log('Modal encontrado:', modal);
+    if (modal) {
+        modal.classList.add('active');
+        console.log('Classe active adicionada');
+    } else {
+        console.error('Modal não encontrado!');
+    }
 }
 
 function fecharImportacaoManual() {
