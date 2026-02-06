@@ -105,6 +105,12 @@ function abrirImportacaoManual() {
 function fecharImportacaoManual() {
     document.getElementById('modalImportManual').classList.remove('active');
     removerArquivo();
+    
+    // Resetar estado
+    document.getElementById('progressContainer').style.display = 'none';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('btnImportar').disabled = true;
+    document.getElementById('btnCancelar').disabled = false;
 }
 
 function fecharLog() {
@@ -120,12 +126,30 @@ async function executarImportacao() {
     formData.append('file', arquivoSelecionado);
     
     // Mostrar progresso
-    document.getElementById('progressContainer').style.display = 'block';
-    document.getElementById('btnImportar').disabled = true;
-    document.getElementById('btnCancelar').disabled = true;
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const progressPercent = document.getElementById('progressPercent');
+    const btnImportar = document.getElementById('btnImportar');
+    const btnCancelar = document.getElementById('btnCancelar');
+    
+    progressContainer.style.display = 'block';
+    btnImportar.disabled = true;
+    btnCancelar.disabled = true;
+    progressFill.style.width = '10%';
+    progressText.textContent = 'Enviando arquivo...';
+    progressPercent.textContent = '10%';
     
     try {
         const token = localStorage.getItem('token');
+        
+        // Simular progresso
+        setTimeout(() => {
+            progressFill.style.width = '30%';
+            progressPercent.textContent = '30%';
+            progressText.textContent = 'Processando planilha...';
+        }, 300);
+        
         const response = await fetch(`${API_URL}/importar-xlsx`, {
             method: 'POST',
             headers: {
@@ -134,30 +158,36 @@ async function executarImportacao() {
             body: formData
         });
         
+        progressFill.style.width = '70%';
+        progressPercent.textContent = '70%';
+        progressText.textContent = 'Distribuindo SS\'s...';
+        
         const data = await response.json();
         
         if (!response.ok) {
             throw new Error(data.error || 'Erro ao importar arquivo');
         }
         
-        // Atualizar progresso
-        document.getElementById('progressFill').style.width = '100%';
-        document.getElementById('progressText').textContent = 'Importação concluída!';
+        // Concluído
+        progressFill.style.width = '100%';
+        progressPercent.textContent = '100%';
+        progressText.textContent = '✅ Importação concluída!';
         
         // Mostrar resultado
-        alert(`✅ Importação concluída!\n\nTotal: ${data.total}\nSucesso: ${data.sucesso}\nErros: ${data.erros}`);
-        
-        // Fechar modal e recarregar logs
         setTimeout(() => {
+            alert(`✅ Importação concluída com sucesso!\n\n📊 Total: ${data.total}\n✅ Sucesso: ${data.sucesso}\n❌ Erros: ${data.erros}`);
+            
+            // Fechar modal e recarregar
             fecharImportacaoManual();
             carregarLogs();
-        }, 1500);
+        }, 800);
         
     } catch (error) {
-        alert('❌ Erro: ' + error.message);
-        document.getElementById('progressContainer').style.display = 'none';
-        document.getElementById('btnImportar').disabled = false;
-        document.getElementById('btnCancelar').disabled = false;
+        console.error('Erro na importação:', error);
+        alert('❌ Erro ao importar: ' + error.message);
+        progressContainer.style.display = 'none';
+        btnImportar.disabled = false;
+        btnCancelar.disabled = false;
     }
 }
 

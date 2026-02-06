@@ -100,81 +100,69 @@
     <!-- Modal Importação Manual -->
     <div id="modalImportManual" class="modal-overlay">
         <div class="modal-import">
-            <div class="modal-header-custom">
-                <h2>Importação Manual - Arquivo XLSX</h2>
-                <button class="modal-close-custom" onclick="fecharImportacaoManual()">&times;</button>
+            <div class="modal-header-import">
+                <h2>📄 Importar Planilha XLSX</h2>
+                <button class="btn-close" onclick="fecharImportacaoManual()">&times;</button>
             </div>
             
-            <div class="modal-body-custom">
-                <div class="upload-area" id="uploadArea">
-                    <input type="file" id="fileInput" accept=".xlsx" style="display: none;">
-                    <div class="upload-icon">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-width="2"/>
-                        </svg>
-                    </div>
-                    <h3>Arraste o arquivo ou clique para selecionar</h3>
-                    <p>Apenas arquivos .xlsx</p>
-                    <button class="btn-selecionar" onclick="document.getElementById('fileInput').click()">
-                        Selecionar Arquivo
-                    </button>
+            <div class="modal-body-import">
+                <input type="file" id="fileInput" accept=".xlsx" style="display: none;">
+                
+                <div id="uploadArea" class="upload-zone">
+                    <div class="upload-icon">📤</div>
+                    <h3>Arraste o arquivo aqui</h3>
+                    <p>ou clique para selecionar</p>
+                    <span class="upload-hint">Formato: .XLSX</span>
                 </div>
 
-                <div class="file-info" id="fileInfo" style="display: none;">
-                    <div class="file-selected">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-width="2"/>
-                            <path d="M14 2v6h6" stroke-width="2"/>
-                        </svg>
-                        <div class="file-details">
-                            <strong id="fileName">arquivo.xlsx</strong>
-                            <small id="fileSize">0 KB</small>
-                        </div>
-                        <button class="btn-remove-file" onclick="removerArquivo()">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M18 6L6 18M6 6l12 12" stroke-width="2"/>
-                            </svg>
-                        </button>
+                <div id="fileInfo" class="file-selected-box" style="display: none;">
+                    <div class="file-icon-display">📄</div>
+                    <div class="file-data">
+                        <strong id="fileName"></strong>
+                        <small id="fileSize"></small>
+                    </div>
+                    <button class="btn-remove" onclick="removerArquivo()" title="Remover">✕</button>
+                </div>
+
+                <div id="progressContainer" class="progress-section" style="display: none;">
+                    <div class="progress-info">
+                        <span id="progressText">Processando...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar-fill" id="progressFill"></div>
                     </div>
                 </div>
 
-                <div class="import-info-box">
-                    <h4>⚠️ Atenção: Ordem das Colunas</h4>
-                    <p>O arquivo deve seguir exatamente esta ordem:</p>
-                    <ol class="columns-list">
-                        <li>ss_data_saida_real</li>
-                        <li>Cluster</li>
-                        <li>regional</li>
-                        <li>Ramo_Fornecedor</li>
-                        <li>PosContato</li>
-                        <li>Telefone_Cliente</li>
-                        <li>Servico_Principal</li>
-                        <li>placa</li>
-                        <li>ss_seq</li>
-                        <li>HumorCliente</li>
-                        <li>Data_Envio_Formatada</li>
-                        <li>Responsavel</li>
-                        <li>Percepcao</li>
-                        <li>Observacao</li>
-                        <li>Fila_Especial?</li>
-                        <li>Score_Priorizacao</li>
-                        <li>Pesquisa_respondida</li>
-                    </ol>
-                </div>
-
-                <div class="modal-actions">
-                    <button class="btn-cancelar" onclick="fecharImportacaoManual()">Cancelar</button>
-                    <button class="btn-importar" id="btnImportar" onclick="executarImportacao()" disabled>
-                        Importar Dados
-                    </button>
-                </div>
-
-                <div class="progress-container" id="progressContainer" style="display: none;">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
+                <details class="columns-info">
+                    <summary>📋 Ver ordem das 17 colunas obrigatórias</summary>
+                    <div class="columns-grid">
+                        <span>1. ss_data_saida_real</span>
+                        <span>2. Cluster</span>
+                        <span>3. regional</span>
+                        <span>4. Ramo_Fornecedor</span>
+                        <span>5. PosContato</span>
+                        <span>6. Telefone_Cliente</span>
+                        <span>7. Servico_Principal</span>
+                        <span>8. placa</span>
+                        <span>9. ss_seq</span>
+                        <span>10. HumorCliente</span>
+                        <span>11. Data_Envio_Formatada</span>
+                        <span>12. Responsavel</span>
+                        <span>13. Percepcao</span>
+                        <span>14. Observacao</span>
+                        <span>15. Fila_Especial?</span>
+                        <span>16. Score_Priorizacao</span>
+                        <span>17. Pesquisa_respondida</span>
                     </div>
-                    <p id="progressText">Processando...</p>
-                </div>
+                </details>
+            </div>
+
+            <div class="modal-footer-import">
+                <button class="btn btn-cancel" id="btnCancelar" onclick="fecharImportacaoManual()">Cancelar</button>
+                <button class="btn btn-submit" id="btnImportar" onclick="executarImportacao()" disabled>
+                    <span>Importar Dados</span>
+                </button>
             </div>
         </div>
     </div>
