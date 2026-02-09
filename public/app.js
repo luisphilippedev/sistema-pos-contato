@@ -260,10 +260,8 @@ document.getElementById('btnBuscar').addEventListener('click', async () => {
 
 // ===== REDISTRIBUIR SS'S =====
 
-document.getElementById('btnRedistribuir')?.addEventListener('click', async () => {
-    abrirModal('modalRedistribuir');
-    await carregarSSParaRedistribuir();
-    await carregarUsuariosDestino();
+document.getElementById('btnRedistribuir')?.addEventListener('click', () => {
+    window.location.href = 'redistribuir.html';
 });
 
 async function carregarSSParaRedistribuir() {

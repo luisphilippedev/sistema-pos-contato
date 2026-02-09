@@ -1,11 +1,15 @@
 :root {
-    --bg: #f6faf7;
+    --bg: #f3f7f4;
+    --card: #ffffff;
+    --border: #e4ece7;
+    --shadow: 0 6px 20px rgba(26, 62, 40, 0.08);
+    --accent: #2d5f3f;
 }
 
 .redistribuir-page {
     min-height: 100vh;
-    background: var(--bg);
-    padding: 24px;
+    background: radial-gradient(circle at top, #f7fbf8 0%, var(--bg) 55%);
+    padding: 28px;
 }
 
 .redistribuir-header {
@@ -13,35 +17,53 @@
     align-items: center;
     gap: 16px;
     margin-bottom: 20px;
+    background: var(--card);
+    padding: 16px 20px;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
 }
 
 .header-title h1 {
     margin: 0;
-    color: #2d5f3f;
+    color: var(--accent);
     font-size: 24px;
 }
 
 .header-title p {
     margin: 4px 0 0;
-    color: #666;
+    color: #5a6b61;
     font-size: 13px;
+}
+
+.alerta-erro {
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #fff3f3;
+    color: #b00020;
+    border: 1px solid #ffd0d0;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .redistribuir-filtros {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 12px;
-    background: #fff;
+    background: rgba(255, 255, 255, 0.85);
     padding: 16px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(6px);
     margin-bottom: 16px;
 }
 
 .filtro label {
     display: block;
     font-size: 12px;
-    color: #666;
+    color: #4f5f56;
     margin-bottom: 6px;
     font-weight: 600;
 }
@@ -50,17 +72,26 @@
 .filtro select {
     width: 100%;
     padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
+    border-radius: 10px;
+    border: 1px solid #dfe6e1;
     font-size: 13px;
     background: #fff;
+    transition: border 0.2s, box-shadow 0.2s;
+}
+
+.filtro input:focus,
+.filtro select:focus {
+    outline: none;
+    border-color: #8fc3a1;
+    box-shadow: 0 0 0 3px rgba(143, 195, 161, 0.18);
 }
 
 .redistribuir-tabela {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    padding: 12px;
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    overflow: hidden;
 }
 
 .redistribuir-tabela table {
@@ -71,24 +102,33 @@
 
 .redistribuir-tabela th,
 .redistribuir-tabela td {
-    padding: 10px;
-    border-bottom: 1px solid #f0f0f0;
+    padding: 12px;
+    border-bottom: 1px solid #f0f4f1;
     text-align: left;
 }
 
 .redistribuir-tabela thead th {
-    color: #2d5f3f;
+    color: var(--accent);
     font-weight: 700;
-    background: #f9fbfa;
+    background: #f7fbf8;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.redistribuir-tabela tbody tr:hover {
+    background: #f8fbf9;
 }
 
 .tabela-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 6px 12px;
+    padding: 12px 14px;
     font-size: 12px;
-    color: #666;
+    color: #5f6d65;
+    border-bottom: 1px solid #eef2ef;
+    background: #fcfdfc;
 }
 
 .redistribuir-acoes {
@@ -97,21 +137,26 @@
     align-items: center;
     margin-top: 16px;
     gap: 16px;
+    background: var(--card);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
 }
 
 .destino label {
     display: block;
     font-size: 12px;
-    color: #666;
+    color: #4f5f56;
     margin-bottom: 6px;
     font-weight: 600;
 }
 
 .destino select {
-    min-width: 260px;
+    min-width: 280px;
     padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
+    border-radius: 10px;
+    border: 1px solid #dfe6e1;
     font-size: 13px;
     background: #fff;
 }
@@ -120,12 +165,14 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .disclaimer {
     font-size: 11px;
-    color: #888;
-    max-width: 220px;
+    color: #7a8a81;
+    max-width: 240px;
 }
 
 .status-pill {

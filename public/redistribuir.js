@@ -19,12 +19,33 @@ async function carregarSSParaRedistribuir() {
         const response = await fetch(`${API_URL}/ss/para-redistribuir`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            const msg = error.error || 'Erro ao carregar SS. Verifique sua conexão.';
+            mostrarErro(msg);
+            return;
+        }
+        esconderErro();
         ssLista = await response.json();
         aplicarFiltros();
     } catch (error) {
         console.error('Erro ao carregar SS:', error);
-        alert('Erro ao carregar SS. Verifique sua conexão.');
+        mostrarErro('Erro ao carregar SS. Verifique sua conexão.');
     }
+}
+
+function mostrarErro(mensagem) {
+    const el = document.getElementById('erroRedistribuir');
+    if (!el) return;
+    el.textContent = mensagem;
+    el.style.display = 'block';
+}
+
+function esconderErro() {
+    const el = document.getElementById('erroRedistribuir');
+    if (!el) return;
+    el.textContent = '';
+    el.style.display = 'none';
 }
 
 async function carregarUsuarios() {
@@ -90,6 +111,18 @@ function aplicarFiltros() {
 function renderizar() {
     const tbody = document.getElementById('redistribuirBody');
     tbody.innerHTML = '';
+
+    if (ssListaFiltrada.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align:center; padding: 24px; color: #777;">
+                    Nenhuma SS em análise encontrada
+                </td>
+            </tr>
+        `;
+        atualizarContador();
+        return;
+    }
 
     ssListaFiltrada.forEach(ss => {
         const statusClass = ss.responsavel_status === 'online' ? 'status-online' :
