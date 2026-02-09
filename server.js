@@ -44,8 +44,14 @@ function isWithinWorkHours(user) {
   const fim = parseTimeToMinutes(user.horario_fim);
   if (inicio === null || fim === null) return true;
 
+  // Horário de Brasília (UTC-3)
   const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const brasiliaOffset = -3 * 60; // UTC-3 em minutos
+  const localOffset = now.getTimezoneOffset(); // offset local em minutos
+  const offsetDiff = brasiliaOffset - localOffset;
+  
+  const brasiliaTime = new Date(now.getTime() + offsetDiff * 60 * 1000);
+  const nowMinutes = brasiliaTime.getHours() * 60 + brasiliaTime.getMinutes();
 
   if (inicio === fim) return true;
   if (fim > inicio) {
@@ -295,7 +301,7 @@ app.get('/api/minhas-ss', authenticateToken, async (req, res) => {
              COUNT(c.id) as total_monitoramentos
       FROM ss s
       LEFT JOIN contatos c ON s.id = c.ss_id
-      WHERE s.responsavel_id = ? AND s.status = "pendente"
+      WHERE s.responsavel_id = ? AND s.status = 'pendente'
       GROUP BY s.id
       ORDER BY s.criado_em DESC
     `, [req.user.id]);
@@ -467,7 +473,7 @@ app.get('/api/ss/para-redistribuir', authenticateToken, authenticateLideranca, a
              u.horario_inicio as responsavel_inicio, u.horario_fim as responsavel_fim
       FROM ss s
       LEFT JOIN usuarios u ON s.responsavel_id = u.id
-      WHERE s.status = "pendente"
+      WHERE s.status = 'pendente'
       ORDER BY s.criado_em DESC
     `);
 
