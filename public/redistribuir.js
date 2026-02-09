@@ -68,7 +68,7 @@ async function carregarUsuarios() {
         const usuarios = await response.json();
         usuariosOnline = usuarios.filter(u => u.status === 'online' || u.status === 'ausente');
         
-        // Preencher apenas filtro
+        // Preencher filtro de usuário
         const filtroUsuario = document.getElementById('filtroUsuario');
         
         usuarios.forEach(u => {
@@ -76,6 +76,16 @@ async function carregarUsuarios() {
             opt.value = u.id;
             opt.textContent = `${u.nome} - ${formatarFila(u.fila)}`;
             filtroUsuario.appendChild(opt);
+        });
+
+        // Preencher select de usuário destino (apenas online/ausente)
+        const usuarioDestino = document.getElementById('usuarioDestino');
+        usuariosOnline.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.id;
+            const badge = u.status === 'online' ? '🟢' : '🟠';
+            opt.textContent = `${badge} ${u.nome} - ${formatarFila(u.fila)}`;
+            usuarioDestino.appendChild(opt);
         });
     } catch (error) {
         console.error('Erro ao carregar usuários:', error);
@@ -253,6 +263,7 @@ document.getElementById('btnRedistribuirAuto')?.addEventListener('click', async 
 
         alert('Redistribuição automática concluída!');
         ssSelecionadas.clear();
+        document.getElementById('selecionarTodos').checked = false;
         await carregarSSParaRedistribuir();
     } catch (error) {
         console.error('Erro:', error);
@@ -260,6 +271,53 @@ document.getElementById('btnRedistribuirAuto')?.addEventListener('click', async 
     }
 });
 
+// Redistribuição individual
+document.getElementById('btnRedistribuirInd')?.addEventListener('click', async () => {
+    const usuarioDestinoId = document.getElementById('usuarioDestino').value;
+    
+    if (ssSelecionadas.size === 0) {
+        alert('Selecione ao menos uma SS');
+        return;
+    }
+
+    if (!usuarioDestinoId) {
+        alert('Selecione um usuário de destino');
+        return;
+    }
+
+    if (!confirm(`Redistribuir ${ssSelecionadas.size} SS(s) para o usuário selecionado?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/ss/redistribuir`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                ss_ids: Array.from(ssSelecionadas),
+                usuario_destino_id: Number(usuarioDestinoId)
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            alert(error.error || 'Erro ao redistribuir');
+            return;
+        }
+
+        alert('Redistribuição individual concluída!');
+        ssSelecionadas.clear();
+        document.getElementById('selecionarTodos').checked = false;
+        document.getElementById('usuarioDestino').value = '';
+        await carregarSSParaRedistribuir();
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao redistribuir');
+    }
+});
 
 
 // ===== EVENTOS DE FILTRO =====
