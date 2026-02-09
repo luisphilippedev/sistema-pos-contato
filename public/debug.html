@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Status Distribuição</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .debug-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        
+        .debug-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .debug-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2d5f3f;
+            margin-bottom: 20px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .info-value {
+            color: #333;
+        }
+        
+        .status-ok {
+            color: #2d5f3f;
+            font-weight: 600;
+        }
+        
+        .status-erro {
+            color: #d32f2f;
+            font-weight: 600;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .btn-verificar {
+            background: linear-gradient(135deg, #2d5f3f 0%, #6DBF8B 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .btn-verificar:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <div class="debug-card">
+            <h1 class="debug-title">🔍 Debug - Status de Distribuição</h1>
+            
+            <div class="input-group">
+                <label>Cluster/Fila para verificar (opcional):</label>
+                <input type="text" id="clusterInput" placeholder="Ex: pos_complexo, pos_rapidos_medios, pos_especiais">
+            </div>
+            
+            <button class="btn-verificar" onclick="verificarStatus()">Verificar Status</button>
+        </div>
+        
+        <div id="resultados"></div>
+    </div>
+
+    <script>
+        async function verificarStatus() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Você precisa estar logado');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const cluster = document.getElementById('clusterInput').value.trim();
+            const url = cluster 
+                ? `/api/debug/status-distribuicao?cluster=${encodeURIComponent(cluster)}`
+                : '/api/debug/status-distribuicao';
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao verificar status');
+                }
+
+                const data = await response.json();
+                mostrarResultados(data);
+            } catch (error) {
+                alert('Erro: ' + error.message);
+            }
+        }
+
+        function mostrarResultados(data) {
+            const container = document.getElementById('resultados');
+            
+            const html = `
+                <div class="debug-card">
+                    <h2 class="debug-title">👤 Informações do Usuário</h2>
+                    <div class="info-row">
+                        <span class="info-label">ID:</span>
+                        <span class="info-value">${data.usuario.id}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Nome:</span>
+                        <span class="info-value">${data.usuario.nome}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Status no Banco:</span>
+                        <span class="info-value ${data.usuario.status_banco === 'online' ? 'status-ok' : 'status-erro'}">
+                            ${data.usuario.status_banco}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Fila:</span>
+                        <span class="info-value">${data.usuario.fila || 'NÃO CONFIGURADA'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Horário Início:</span>
+                        <span class="info-value">${data.usuario.horario_inicio || 'NÃO CONFIGURADO'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Horário Fim:</span>
+                        <span class="info-value">${data.usuario.horario_fim || 'NÃO CONFIGURADO'}</span>
+                    </div>
+                </div>
+
+                <div class="debug-card">
+                    <h2 class="debug-title">⏰ Horário Atual</h2>
+                    <div class="info-row">
+                        <span class="info-label">Hora:</span>
+                        <span class="info-value">${data.horario_atual.hora}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Minutos do dia:</span>
+                        <span class="info-value">${data.horario_atual.minutos_do_dia}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Início (minutos):</span>
+                        <span class="info-value">${data.horario_atual.inicio_minutos !== null ? data.horario_atual.inicio_minutos : 'N/A'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Fim (minutos):</span>
+                        <span class="info-value">${data.horario_atual.fim_minutos !== null ? data.horario_atual.fim_minutos : 'N/A'}</span>
+                    </div>
+                </div>
+
+                <div class="debug-card">
+                    <h2 class="debug-title">✅ Verificações</h2>
+                    <div class="info-row">
+                        <span class="info-label">Tem horário configurado?</span>
+                        <span class="info-value ${data.verificacoes.tem_horario_configurado ? 'status-ok' : 'status-erro'}">
+                            ${data.verificacoes.tem_horario_configurado ? '✅ SIM' : '❌ NÃO'}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Status é 'online'?</span>
+                        <span class="info-value ${data.verificacoes.status_e_online ? 'status-ok' : 'status-erro'}">
+                            ${data.verificacoes.status_e_online ? '✅ SIM' : '❌ NÃO'}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Dentro do horário de trabalho?</span>
+                        <span class="info-value ${data.verificacoes.dentro_horario ? 'status-ok' : 'status-erro'}">
+                            ${data.verificacoes.dentro_horario ? '✅ SIM' : '❌ NÃO'}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Fila corresponde?</span>
+                        <span class="info-value">
+                            ${typeof data.verificacoes.fila_corresponde === 'boolean' 
+                                ? (data.verificacoes.fila_corresponde ? '✅ SIM' : '❌ NÃO')
+                                : data.verificacoes.fila_corresponde}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Status Efetivo:</span>
+                        <span class="info-value ${data.verificacoes.status_efetivo === 'online' ? 'status-ok' : 'status-erro'}">
+                            ${data.verificacoes.status_efetivo}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="debug-card">
+                    <h2 class="debug-title">🎯 Resultado Final</h2>
+                    <div class="info-row">
+                        <span class="info-label">Cluster Verificado:</span>
+                        <span class="info-value">${data.cluster_verificado}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Passou no filtro de distribuição?</span>
+                        <span class="info-value ${data.passou_filtro ? 'status-ok' : 'status-erro'}">
+                            ${data.passou_filtro ? '✅ SIM - Usuário seria selecionado' : '❌ NÃO - Usuário seria ignorado'}
+                        </span>
+                    </div>
+                </div>
+
+                ${!data.passou_filtro ? `
+                    <div class="debug-card" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+                        <h2 class="debug-title" style="color: #856404;">⚠️ Problemas Identificados</h2>
+                        <ul style="color: #856404; margin: 0; padding-left: 20px;">
+                            ${!data.verificacoes.tem_horario_configurado ? '<li>Horário de trabalho não está configurado</li>' : ''}
+                            ${!data.verificacoes.status_e_online ? '<li>Status no banco não é "online"</li>' : ''}
+                            ${!data.verificacoes.dentro_horario ? '<li>Horário atual está fora do período de trabalho</li>' : ''}
+                            ${data.verificacoes.fila_corresponde === false ? '<li>Fila do usuário não corresponde ao cluster do XLSX</li>' : ''}
+                        </ul>
+                    </div>
+                ` : ''}
+            `;
+            
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

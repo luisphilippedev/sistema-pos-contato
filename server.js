@@ -161,6 +161,56 @@ app.get('/api/me', authenticateToken, async (req, res) => {
   }
 });
 
+// Endpoint de debug para verificar status de distribuição
+app.get('/api/debug/status-distribuicao', authenticateToken, async (req, res) => {
+  try {
+    const { cluster } = req.query;
+    const usuario = await db.get(
+      'SELECT id, nome, status, fila, horario_inicio, horario_fim FROM usuarios WHERE id = ?',
+      [req.user.id]
+    );
+    
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const inicio = parseTimeToMinutes(usuario.horario_inicio);
+    const fim = parseTimeToMinutes(usuario.horario_fim);
+    
+    const debugInfo = {
+      usuario: {
+        id: usuario.id,
+        nome: usuario.nome,
+        status_banco: usuario.status,
+        fila: usuario.fila,
+        horario_inicio: usuario.horario_inicio,
+        horario_fim: usuario.horario_fim
+      },
+      horario_atual: {
+        hora: now.toLocaleTimeString('pt-BR'),
+        minutos_do_dia: nowMinutes,
+        inicio_minutos: inicio,
+        fim_minutos: fim
+      },
+      verificacoes: {
+        tem_horario_configurado: !!(usuario.horario_inicio && usuario.horario_fim),
+        status_e_online: usuario.status === 'online',
+        dentro_horario: isWithinWorkHours(usuario),
+        fila_corresponde: cluster ? usuario.fila === cluster : 'não verificado',
+        status_efetivo: getEffectiveStatus(usuario)
+      },
+      cluster_verificado: cluster || 'nenhum',
+      passou_filtro: usuario.status === 'online' && 
+                     getEffectiveStatus(usuario) === 'online' && 
+                     (!cluster || usuario.fila === cluster)
+    };
+    
+    res.json(debugInfo);
+  } catch (error) {
+    console.error('Erro ao verificar status:', error);
+    res.status(500).json({ error: 'Erro ao verificar status' });
+  }
+});
+
+
 // Listar todos os usuários (apenas liderança)
 app.get('/api/usuarios', authenticateToken, authenticateLideranca, async (req, res) => {
   try {
@@ -823,10 +873,18 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
         const usuariosFila = usuariosOnline.filter(u => u.fila === cluster);
         if (usuariosFila.length === 0) {
           erros++;
+          // Mensagem de erro detalhada para debug
+          const todosUsuarios = usuarios.length;
+          const comStatusOnline = usuarios.filter(u => u.status === 'online').length;
+          const dentrodoHorario = usuarios.filter(u => getEffectiveStatus(u) === 'online').length;
+          const naFila = usuarios.filter(u => u.fila === cluster).length;
+          
+          const mensagemErro = `Nenhum usuário disponível. Cluster: ${cluster} | Total usuários: ${todosUsuarios} | Status online: ${comStatusOnline} | Dentro do horário: ${dentrodoHorario} | Na fila ${cluster}: ${naFila}`;
+          
           await db.run(
             `INSERT INTO detalhes_importacao (log_id, status, numero_ss, placa, cluster, mensagem) 
              VALUES (?, ?, ?, ?, ?, ?)`,
-            [logId, 'erro', numeroSS, placa, cluster, 'Nenhum usuário online na fila correspondente']
+            [logId, 'erro', numeroSS, placa, cluster, mensagemErro]
           );
           continue;
         }
