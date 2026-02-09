@@ -263,8 +263,8 @@ app.put('/api/usuarios/:id', authenticateToken, authenticateLideranca, async (re
 
 // ===== ROTAS DE SS (SOLICITAÇÕES DE SERVIÇO) =====
 
-// Buscar SS específica por ID
-app.get('/api/ss/:id', authenticateToken, async (req, res) => {
+// Buscar SS específica por ID (somente números)
+app.get('/api/ss/:id(\\d+)', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const ss = await db.get('SELECT * FROM ss WHERE id = ?', [id]);
