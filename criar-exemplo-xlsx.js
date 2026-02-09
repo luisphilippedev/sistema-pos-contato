@@ -25,7 +25,7 @@ const dados = [
   // Linha 1 - Pendente
   [
     '2024-01-15',
-    'pos_rapidos_medios',
+    'REVISAO + SERV. RAPIDO',
     'SP',
     'Ramo A',
     'Sim',
@@ -65,7 +65,7 @@ const dados = [
   // Linha 3 - Respondida (pesquisa já foi respondida)
   [
     '2024-01-17',
-    'pos_rapidos_medios',
+    'SERVICO MEDIO',
     'MG',
     'Ramo C',
     'Sim',
@@ -85,7 +85,7 @@ const dados = [
   // Linha 4 - Pendente
   [
     '2024-01-18',
-    'pos_rapidos_medios',
+    'SERVICO COMPLEXO',
     'SP',
     'Ramo A',
     'Sim',
@@ -136,4 +136,4 @@ XLSX.writeFile(wb, 'exemplo_importacao.xlsx');
 
 console.log('✅ Arquivo exemplo_importacao.xlsx criado com sucesso!');
 console.log('📊 Total de registros: 5 (3 pendentes + 1 respondida + 1 pendente)');
-console.log('🎯 Clusters: pos_rapidos_medios (3), pos_lentes_complexos (2)');
+console.log('🎯 Clusters: REVISAO + SERV. RAPIDO, SERVICO MEDIO, SERVICO COMPLEXO, ESPECIAIS');

@@ -28,7 +28,7 @@ class Database {
           status TEXT NOT NULL DEFAULT 'online',
           horario_inicio TEXT,
           horario_fim TEXT,
-          fila TEXT NOT NULL DEFAULT 'pos_rapidos_medios',
+          fila TEXT NOT NULL DEFAULT 'revisao_serv_rapido',
           meta_diaria INTEGER DEFAULT 50,
           criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -151,7 +151,7 @@ class Database {
     this.db.run(`
       INSERT OR IGNORE INTO usuarios (nome, email, senha, cargo, perfil, status, fila, horario_inicio, horario_fim)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, ['Luis Philippe', 'admin@localiza.com', senhaHash, 'Liderança', 'lideranca', 'online', 'pos_rapidos_medios', '08:00', '18:00'], (err) => {
+    `, ['Luis Philippe', 'admin@localiza.com', senhaHash, 'Liderança', 'lideranca', 'online', 'revisao_serv_rapido', '08:00', '18:00'], (err) => {
       if (err) {
         console.log('Usuário admin já existe');
       } else {
@@ -163,6 +163,17 @@ class Database {
     this.db.run(`
       UPDATE usuarios SET horario_inicio = '08:00', horario_fim = '18:00' WHERE email = 'admin@localiza.com'
     `);
+
+    // Migração simples de filas antigas
+    this.db.run(`UPDATE usuarios SET fila = 'revisao_serv_rapido' WHERE fila = 'pos_rapidos_medios'`);
+    this.db.run(`UPDATE usuarios SET fila = 'servico_complexo' WHERE fila = 'pos_complexo'`);
+    this.db.run(`UPDATE usuarios SET fila = 'especiais' WHERE fila = 'pos_especiais'`);
+    this.db.run(`UPDATE ss SET fila = 'revisao_serv_rapido' WHERE fila = 'pos_rapidos_medios'`);
+    this.db.run(`UPDATE ss SET fila = 'servico_complexo' WHERE fila = 'pos_complexo'`);
+    this.db.run(`UPDATE ss SET fila = 'especiais' WHERE fila = 'pos_especiais'`);
+    this.db.run(`UPDATE ss SET cluster = 'revisao_serv_rapido' WHERE cluster = 'pos_rapidos_medios'`);
+    this.db.run(`UPDATE ss SET cluster = 'servico_complexo' WHERE cluster = 'pos_complexo'`);
+    this.db.run(`UPDATE ss SET cluster = 'especiais' WHERE cluster = 'pos_especiais'`);
   }
 
   query(sql, params = []) {

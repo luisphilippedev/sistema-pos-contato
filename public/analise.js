@@ -144,9 +144,10 @@ let ordenacaoAtual = 'asc'; // mais próximo de vencer primeiro
 
 function formatarFila(fila) {
     const filas = {
-        'pos_complexo': 'Pós Complexo',
-        'pos_rapidos_medios': 'Pós Rápidos e Médios',
-        'pos_especiais': 'Pós Especiais'
+        'revisao_serv_rapido': 'Revisão + Serv. Rápido',
+        'servico_complexo': 'Serviço Complexo',
+        'servico_medio': 'Serviço Médio',
+        'especiais': 'Especiais'
     };
     return filas[fila] || fila;
 }

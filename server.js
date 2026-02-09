@@ -235,7 +235,7 @@ app.post('/api/usuarios', authenticateToken, authenticateLideranca, async (req, 
     
     const result = await db.run(
       'INSERT INTO usuarios (nome, email, senha, cargo, perfil, fila, horario_inicio, horario_fim) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [nome, email, senhaHash, cargo, perfil || 'analista', fila || 'pos_rapidos_medios', horario_inicio || null, horario_fim || null]
+      [nome, email, senhaHash, cargo, perfil || 'analista', fila || 'revisao_serv_rapido', horario_inicio || null, horario_fim || null]
     );
     
     res.status(201).json({ id: result.id, message: 'Usuário criado com sucesso' });
@@ -837,14 +837,32 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
 
         // Normalizar cluster para formato do banco
         const clusterMap = {
-          'Pós Rápidos e Médios': 'pos_rapidos_medios',
-          'pos rapidos e medios': 'pos_rapidos_medios',
-          'Pós Complexo': 'pos_complexo',
-          'pos complexo': 'pos_complexo',
-          'Pós Especiais': 'pos_especiais',
-          'pos especiais': 'pos_especiais'
+          'REVISAO + SERV. RAPIDO': 'revisao_serv_rapido',
+          'Revisao + Serv. Rapido': 'revisao_serv_rapido',
+          'Revisão + Serv. Rápido': 'revisao_serv_rapido',
+          'SERVICO COMPLEXO': 'servico_complexo',
+          'Servico Complexo': 'servico_complexo',
+          'Serviço Complexo': 'servico_complexo',
+          'SERVICO MEDIO': 'servico_medio',
+          'Servico Medio': 'servico_medio',
+          'Serviço Médio': 'servico_medio',
+          'ESPECIAIS': 'especiais',
+          'Especiais': 'especiais',
+          // Compatibilidade com nomes antigos
+          'Pós Rápidos e Médios': 'revisao_serv_rapido',
+          'pos rapidos e medios': 'revisao_serv_rapido',
+          'Pós Complexo': 'servico_complexo',
+          'pos complexo': 'servico_complexo',
+          'Pós Especiais': 'especiais',
+          'pos especiais': 'especiais'
         };
-        const cluster = clusterMap[clusterRaw] || clusterRaw.toLowerCase().replace(/\s+/g, '_').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const clusterNormalizado = clusterRaw
+          .toLowerCase()
+          .replace(/[+./]/g, ' ')
+          .replace(/\s+/g, '_')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+        const cluster = clusterMap[clusterRaw] || clusterNormalizado;
 
         if (!numeroSS) {
           erros++;

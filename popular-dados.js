@@ -1,7 +1,7 @@
 // Script para popular o banco com 50 SS's de teste
 const db = require('./database');
 
-const clusters = ['SERVIÇO COMPLEXO', 'SERVIÇO MÉDIO', 'SERVIÇO RÁPIDO', 'SERVIÇO ESPECIAL'];
+const clusters = ['SERVICO COMPLEXO', 'SERVICO MEDIO', 'REVISAO + SERV. RAPIDO', 'ESPECIAIS'];
 const regionais = ['RIO', 'SÃO PAULO', 'BRASÍLIA', 'MINAS GERAIS', 'BAHIA', 'PARANÁ', 'RIO GRANDE DO SUL'];
 const servicosPrincipais = ['REVISÃO', 'TROCA DE ÓLEO', 'ALINHAMENTO', 'BALANCEAMENTO', 'FREIOS', 'SUSPENSÃO', 'AR CONDICIONADO'];
 const posContato = ['PÓS CONTATO SEM SUCESSO', 'PÓS CONTATO COM SUCESSO', 'PÓ CONTATO PARCIAL'];
@@ -74,7 +74,7 @@ async function popularBanco() {
       const humor_cliente = humores[Math.floor(Math.random() * humores.length)];
       const teve_compra_peca = compraPeca[Math.floor(Math.random() * compraPeca.length)];
       const tel_cliente = gerarTelefone();
-      const fila = i <= 20 ? 'pos_rapidos_medios' : (i <= 40 ? 'pos_complexo' : 'pos_especiais');
+      const fila = i <= 12 ? 'revisao_serv_rapido' : (i <= 24 ? 'servico_medio' : (i <= 36 ? 'servico_complexo' : 'especiais'));
       const responsavel_id = usuarios[Math.floor(Math.random() * usuarios.length)].id;
       
       try {

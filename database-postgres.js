@@ -41,7 +41,7 @@ class DatabasePostgres {
           status TEXT NOT NULL DEFAULT 'online',
           horario_inicio TEXT,
           horario_fim TEXT,
-          fila TEXT NOT NULL DEFAULT 'pos_rapidos_medios',
+          fila TEXT NOT NULL DEFAULT 'revisao_serv_rapido',
           meta_diaria INTEGER DEFAULT 50,
           criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -222,13 +222,24 @@ class DatabasePostgres {
           INSERT INTO usuarios (nome, email, senha, cargo, perfil, status, fila, horario_inicio, horario_fim)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           ON CONFLICT (email) DO NOTHING
-        `, ['Luis Philippe', 'admin@localiza.com', senhaHash, 'Liderança', 'lideranca', 'online', 'pos_rapidos_medios', '08:00', '18:00']);
+        `, ['Luis Philippe', 'admin@localiza.com', senhaHash, 'Liderança', 'lideranca', 'online', 'revisao_serv_rapido', '08:00', '18:00']);
         console.log('Usuário admin verificado: admin@localiza.com / admin123 (08:00-18:00)');
         
         // Atualizar horários do admin se já existir
         await this.pool.query(`
           UPDATE usuarios SET horario_inicio = $1, horario_fim = $2 WHERE email = $3
         `, ['08:00', '18:00', 'admin@localiza.com']);
+
+        // Migração simples de filas antigas
+        await this.pool.query(`UPDATE usuarios SET fila = 'revisao_serv_rapido' WHERE fila = 'pos_rapidos_medios'`);
+        await this.pool.query(`UPDATE usuarios SET fila = 'servico_complexo' WHERE fila = 'pos_complexo'`);
+        await this.pool.query(`UPDATE usuarios SET fila = 'especiais' WHERE fila = 'pos_especiais'`);
+        await this.pool.query(`UPDATE ss SET fila = 'revisao_serv_rapido' WHERE fila = 'pos_rapidos_medios'`);
+        await this.pool.query(`UPDATE ss SET fila = 'servico_complexo' WHERE fila = 'pos_complexo'`);
+        await this.pool.query(`UPDATE ss SET fila = 'especiais' WHERE fila = 'pos_especiais'`);
+        await this.pool.query(`UPDATE ss SET cluster = 'revisao_serv_rapido' WHERE cluster = 'pos_rapidos_medios'`);
+        await this.pool.query(`UPDATE ss SET cluster = 'servico_complexo' WHERE cluster = 'pos_complexo'`);
+        await this.pool.query(`UPDATE ss SET cluster = 'especiais' WHERE cluster = 'pos_especiais'`);
       } catch (error) {
         console.log('Usuário admin já existe');
       }
