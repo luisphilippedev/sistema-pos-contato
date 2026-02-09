@@ -869,22 +869,33 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
           continue;
         }
 
-        // Distribuir somente para usuários online da mesma fila
+        // Distribuir para usuários online
+        // Prioridade 1: mesma fila e dentro do horário
         let usuariosFila = usuariosOnline.filter(u => u.fila === cluster);
+        
         if (usuariosFila.length === 0) {
-          // fallback: tentar usuários com status='online' mesmo que estejam fora do horário
-          const usuariosFilaFallback = usuarios.filter(u => u.status === 'online' && u.fila === cluster);
-          if (usuariosFilaFallback.length > 0) {
-            usuariosFila = usuariosFilaFallback;
-          } else {
-            erros++;
-            await db.run(
-              `INSERT INTO detalhes_importacao (log_id, status, numero_ss, placa, cluster, mensagem) 
-               VALUES (?, ?, ?, ?, ?, ?)`,
-              [logId, 'erro', numeroSS, placa, cluster, 'Nenhum usuário online na fila correspondente']
-            );
-            continue;
-          }
+          // Prioridade 2: mesma fila, status online, fora do horário
+          usuariosFila = usuarios.filter(u => u.status === 'online' && u.fila === cluster);
+        }
+        
+        if (usuariosFila.length === 0) {
+          // Prioridade 3: qualquer usuário online dentro do horário (ignora fila)
+          usuariosFila = usuariosOnline;
+        }
+        
+        if (usuariosFila.length === 0) {
+          // Prioridade 4: qualquer usuário com status online (ignora fila e horário)
+          usuariosFila = usuarios.filter(u => u.status === 'online');
+        }
+        
+        if (usuariosFila.length === 0) {
+          erros++;
+          await db.run(
+            `INSERT INTO detalhes_importacao (log_id, status, numero_ss, placa, cluster, mensagem) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [logId, 'erro', numeroSS, placa, cluster, 'Nenhum usuário online disponível']
+          );
+          continue;
         }
 
         const usuarioResponsavel = usuariosFila[totalProcessadas % usuariosFila.length];
