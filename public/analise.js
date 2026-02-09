@@ -223,14 +223,17 @@ function renderizarTabela(ssList) {
 
 function formatarData(dataStr) {
     if (!dataStr) return '-';
-    const raw = String(dataStr).replace(' ', 'T');
-    const data = raw.length <= 10 ? new Date(`${raw}T00:00:00`) : new Date(raw);
-    if (Number.isNaN(data.getTime())) return dataStr;
-    return data.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
+    const data = new Date(dataStr);
+    if (isNaN(data.getTime())) return '-';
+    
+    const dia = String(data.getDate()).padStart(2, '0');
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const ano = data.getFullYear();
+    const hora = String(data.getHours()).padStart(2, '0');
+    const min = String(data.getMinutes()).padStart(2, '0');
+    const seg = String(data.getSeconds()).padStart(2, '0');
+    
+    return `${dia}/${mes}/${ano}  ${hora}:${min}:${seg}`;
 }
 
 function renderizarContatoSucesso(status) {

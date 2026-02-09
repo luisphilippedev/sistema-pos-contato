@@ -56,21 +56,14 @@ async function carregarUsuarios() {
         const usuarios = await response.json();
         usuariosOnline = usuarios.filter(u => u.status === 'online' || u.status === 'ausente');
         
-        // Preencher filtro e destino
+        // Preencher apenas filtro
         const filtroUsuario = document.getElementById('filtroUsuario');
-        const usuarioDestino = document.getElementById('usuarioDestino');
         
         usuarios.forEach(u => {
             const opt = document.createElement('option');
             opt.value = u.id;
             opt.textContent = `${u.nome} - ${formatarFila(u.fila)}`;
-            filtroUsuario.appendChild(opt.cloneNode(true));
-            
-            if (u.status === 'online' || u.status === 'ausente') {
-                const badge = u.status === 'online' ? '🟢' : '🟠';
-                opt.textContent = `${badge} ${u.nome} - ${formatarFila(u.fila)}`;
-                usuarioDestino.appendChild(opt);
-            }
+            filtroUsuario.appendChild(opt);
         });
     } catch (error) {
         console.error('Erro ao carregar usuários:', error);
@@ -226,51 +219,7 @@ document.getElementById('btnRedistribuirAuto')?.addEventListener('click', async 
     }
 });
 
-document.getElementById('btnRedistribuirInd')?.addEventListener('click', async () => {
-    const usuarioDestinoId = document.getElementById('usuarioDestino').value;
-    
-    if (ssSelecionadas.size === 0) {
-        alert('Selecione ao menos uma SS');
-        return;
-    }
 
-    if (!usuarioDestinoId) {
-        alert('Selecione um usuário de destino');
-        return;
-    }
-
-    if (!confirm(`Redistribuir ${ssSelecionadas.size} SS(s) para o usuário selecionado?`)) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/ss/redistribuir`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                ss_ids: Array.from(ssSelecionadas),
-                usuario_destino_id: Number(usuarioDestinoId)
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            alert(error.error || 'Erro ao redistribuir');
-            return;
-        }
-
-        alert('Redistribuição individual concluída!');
-        ssSelecionadas.clear();
-        document.getElementById('usuarioDestino').value = '';
-        await carregarSSParaRedistribuir();
-    } catch (error) {
-        console.error('Erro:', error);
-        alert('Erro ao redistribuir');
-    }
-});
 
 // ===== EVENTOS DE FILTRO =====
 
