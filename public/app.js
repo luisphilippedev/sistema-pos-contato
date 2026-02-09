@@ -421,9 +421,12 @@ async function carregarUsuarios() {
         tbody.innerHTML = '';
         
         data.forEach(usuario => {
-            const statusBadge = usuario.status === 'online' ? 
-                '<span style="color: #2d5f3f; font-weight: 600;">Online</span>' : 
-                '<span style="color: #d32f2f; font-weight: 600;">Ausente</span>';
+            let statusBadge = '<span style="color: #d32f2f; font-weight: 600;">Ausente</span>';
+            if (usuario.status === 'online') {
+                statusBadge = '<span style="color: #2d5f3f; font-weight: 600;">Online</span>';
+            } else if (usuario.status === 'offline') {
+                statusBadge = '<span style="color: #757575; font-weight: 600;">Offline</span>';
+            }
             
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -479,6 +482,8 @@ async function editarUsuario(id) {
         document.getElementById('usuarioCargo').value = usuario.cargo;
         document.getElementById('usuarioPerfil').value = usuario.perfil;
         document.getElementById('usuarioStatus').value = usuario.status;
+        document.getElementById('usuarioHorarioInicio').value = usuario.horario_inicio || '';
+        document.getElementById('usuarioHorarioFim').value = usuario.horario_fim || '';
         document.getElementById('usuarioFila').value = usuario.fila;
         
         document.getElementById('senhaGroup').style.display = 'none';
@@ -502,6 +507,8 @@ document.getElementById('usuarioForm').addEventListener('submit', async (e) => {
     const cargo = document.getElementById('usuarioCargo').value;
     const perfil = document.getElementById('usuarioPerfil').value;
     const status = document.getElementById('usuarioStatus').value;
+    const horario_inicio = document.getElementById('usuarioHorarioInicio').value;
+    const horario_fim = document.getElementById('usuarioHorarioFim').value;
     const fila = document.getElementById('usuarioFila').value;
     
     try {
@@ -512,14 +519,14 @@ document.getElementById('usuarioForm').addEventListener('submit', async (e) => {
             response = await fetch(`${API_URL}/usuarios/${id}`, {
                 method: 'PUT',
                 headers: headers(),
-                body: JSON.stringify({ nome, cargo, perfil, status, fila, meta_diaria: 50 })
+                body: JSON.stringify({ nome, cargo, perfil, status, fila, meta_diaria: 50, horario_inicio, horario_fim })
             });
         } else {
             // Criar
             response = await fetch(`${API_URL}/usuarios`, {
                 method: 'POST',
                 headers: headers(),
-                body: JSON.stringify({ nome, email, senha, cargo, perfil, fila })
+                body: JSON.stringify({ nome, email, senha, cargo, perfil, fila, horario_inicio, horario_fim })
             });
         }
         

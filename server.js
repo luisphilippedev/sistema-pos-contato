@@ -30,6 +30,40 @@ app.use(express.static('public'));
 // Configuração do Multer para upload de planilhas
 const upload = multer({ dest: 'uploads/' });
 
+const isPostgres = !!process.env.DATABASE_URL;
+
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr) return null;
+  const [h, m] = timeStr.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+function isWithinWorkHours(user) {
+  const inicio = parseTimeToMinutes(user.horario_inicio);
+  const fim = parseTimeToMinutes(user.horario_fim);
+  if (inicio === null || fim === null) return true;
+
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  if (inicio === fim) return true;
+  if (fim > inicio) {
+    return nowMinutes >= inicio && nowMinutes <= fim;
+  }
+  // Turno atravessa meia-noite
+  return nowMinutes >= inicio || nowMinutes <= fim;
+}
+
+function getEffectiveStatus(user) {
+  if (!isWithinWorkHours(user)) return 'offline';
+  return user.status || 'offline';
+}
+
+function withEffectiveStatus(user) {
+  return { ...user, status: getEffectiveStatus(user) };
+}
+
 // Middleware de autenticação
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
@@ -86,6 +120,8 @@ app.post('/api/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    const usuarioComStatus = withEffectiveStatus(usuario);
+
     res.json({
       token,
       usuario: {
@@ -95,7 +131,9 @@ app.post('/api/login', async (req, res) => {
         cargo: usuario.cargo,
         perfil: usuario.perfil,
         fila: usuario.fila,
-        status: usuario.status
+        status: usuarioComStatus.status,
+        horario_inicio: usuario.horario_inicio,
+        horario_fim: usuario.horario_fim
       }
     });
   } catch (error) {
@@ -105,11 +143,29 @@ app.post('/api/login', async (req, res) => {
 
 // ===== ROTAS DE USUÁRIOS =====
 
+// Dados do usuário logado
+app.get('/api/me', authenticateToken, async (req, res) => {
+  try {
+    const usuario = await db.get(
+      'SELECT id, nome, email, cargo, perfil, status, fila, meta_diaria, horario_inicio, horario_fim FROM usuarios WHERE id = ?'
+      , [req.user.id]
+    );
+
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+
+    res.json(withEffectiveStatus(usuario));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Listar todos os usuários (apenas liderança)
 app.get('/api/usuarios', authenticateToken, authenticateLideranca, async (req, res) => {
   try {
-    const usuarios = await db.query('SELECT id, nome, email, cargo, perfil, status, fila, meta_diaria FROM usuarios');
-    res.json(usuarios);
+    const usuarios = await db.query('SELECT id, nome, email, cargo, perfil, status, fila, meta_diaria, horario_inicio, horario_fim FROM usuarios');
+    res.json(usuarios.map(withEffectiveStatus));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -118,12 +174,12 @@ app.get('/api/usuarios', authenticateToken, authenticateLideranca, async (req, r
 // Criar novo usuário (apenas liderança)
 app.post('/api/usuarios', authenticateToken, authenticateLideranca, async (req, res) => {
   try {
-    const { nome, email, senha, cargo, perfil, fila } = req.body;
+    const { nome, email, senha, cargo, perfil, fila, horario_inicio, horario_fim } = req.body;
     const senhaHash = bcrypt.hashSync(senha, 10);
     
     const result = await db.run(
-      'INSERT INTO usuarios (nome, email, senha, cargo, perfil, fila) VALUES (?, ?, ?, ?, ?, ?)',
-      [nome, email, senhaHash, cargo, perfil || 'analista', fila || 'pos_rapidos_medios']
+      'INSERT INTO usuarios (nome, email, senha, cargo, perfil, fila, horario_inicio, horario_fim) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [nome, email, senhaHash, cargo, perfil || 'analista', fila || 'pos_rapidos_medios', horario_inicio || null, horario_fim || null]
     );
     
     res.status(201).json({ id: result.id, message: 'Usuário criado com sucesso' });
@@ -136,11 +192,11 @@ app.post('/api/usuarios', authenticateToken, authenticateLideranca, async (req, 
 app.put('/api/usuarios/:id', authenticateToken, authenticateLideranca, async (req, res) => {
   try {
     const { id } = req.params;
-    const { nome, cargo, perfil, status, fila, meta_diaria } = req.body;
+    const { nome, cargo, perfil, status, fila, meta_diaria, horario_inicio, horario_fim } = req.body;
     
     await db.run(
-      'UPDATE usuarios SET nome = ?, cargo = ?, perfil = ?, status = ?, fila = ?, meta_diaria = ? WHERE id = ?',
-      [nome, cargo, perfil, status, fila, meta_diaria, id]
+      'UPDATE usuarios SET nome = ?, cargo = ?, perfil = ?, status = ?, fila = ?, meta_diaria = ?, horario_inicio = ?, horario_fim = ? WHERE id = ?',
+      [nome, cargo, perfil, status, fila, meta_diaria, horario_inicio || null, horario_fim || null, id]
     );
     
     res.json({ message: 'Usuário atualizado com sucesso' });
@@ -171,16 +227,17 @@ app.get('/api/ss/:id', authenticateToken, async (req, res) => {
 app.get('/api/minhas-ss', authenticateToken, async (req, res) => {
   try {
     // Primeiro, marcar SS's vencidas (mais de 4 dias desde data_envio_pesquisa)
-    const quatroDiasAtras = new Date();
-    quatroDiasAtras.setDate(quatroDiasAtras.getDate() - 4);
+    const quatroDiasAtras = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
+    const dataLimite = isPostgres
+      ? quatroDiasAtras.toISOString()
+      : quatroDiasAtras.toISOString().replace('T', ' ').replace('Z', '');
     
     await db.run(`
       UPDATE ss 
       SET status = 'vencida' 
       WHERE status = 'pendente' 
-      AND data_envio_pesquisa IS NOT NULL 
-      AND data_envio_pesquisa < ?
-    `, [quatroDiasAtras.toISOString()]);
+      AND criado_em < ?
+    `, [dataLimite]);
     
     // Buscar SS's pendentes com contagem de monitoramentos
     const ss = await db.query(`
@@ -205,7 +262,7 @@ app.get('/api/ss-finalizadas', authenticateToken, async (req, res) => {
     const ss = await db.query(`
       SELECT * FROM ss 
       WHERE responsavel_id = ? 
-      AND status = 'vencida'
+      AND status IN ('vencida', 'respondida')
       ORDER BY criado_em DESC
       LIMIT 100
     `, [req.user.id]);
@@ -630,9 +687,10 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
     logId = resultLog.id || resultLog.lastID;
 
     // Buscar usuários online para distribuição
-    const usuariosOnline = await db.all(
-      `SELECT id, nome, fila FROM usuarios WHERE status = 'online' ORDER BY nome`
+    const usuarios = await db.all(
+      `SELECT id, nome, fila, status, horario_inicio, horario_fim FROM usuarios ORDER BY nome`
     );
+    const usuariosOnline = usuarios.filter(u => getEffectiveStatus(u) === 'online');
 
     if (usuariosOnline.length === 0) {
       fs.unlinkSync(req.file.path);

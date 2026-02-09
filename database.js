@@ -26,11 +26,17 @@ class Database {
           cargo TEXT NOT NULL,
           perfil TEXT NOT NULL DEFAULT 'analista',
           status TEXT NOT NULL DEFAULT 'online',
+          horario_inicio TEXT,
+          horario_fim TEXT,
           fila TEXT NOT NULL DEFAULT 'pos_rapidos_medios',
           meta_diaria INTEGER DEFAULT 50,
           criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // Adicionar colunas de horário (migração simples)
+      this.db.run('ALTER TABLE usuarios ADD COLUMN horario_inicio TEXT', () => {});
+      this.db.run('ALTER TABLE usuarios ADD COLUMN horario_fim TEXT', () => {});
 
       // Tabela de SS (Solicitações de Serviço)
       this.db.run(`

@@ -23,16 +23,22 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 async function inicializarAnalise() {
+    await carregarUsuarioAtual();
+
     // Carregar informações do usuário
     document.getElementById('userNameAnalise').textContent = usuarioLogado.nome;
     
     // Status do usuário
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('userStatusText');
+    statusDot.classList.remove('online', 'ausente', 'offline');
     
     if (usuarioLogado.status === 'online') {
         statusDot.classList.add('online');
         statusText.textContent = 'Online';
+    } else if (usuarioLogado.status === 'offline') {
+        statusDot.classList.add('offline');
+        statusText.textContent = 'Offline';
     } else {
         statusDot.classList.add('ausente');
         statusText.textContent = 'Ausente';
@@ -49,6 +55,20 @@ async function inicializarAnalise() {
     
     // Setup filtros
     setupFiltros();
+}
+
+async function carregarUsuarioAtual() {
+    try {
+        const response = await fetch(`${API_URL}/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        usuarioLogado = data;
+        localStorage.setItem('usuario', JSON.stringify(usuarioLogado));
+    } catch (error) {
+        console.error('Erro ao carregar usuário:', error);
+    }
 }
 
 // ===== FILTROS E ORDENAÇÃO =====

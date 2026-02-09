@@ -39,11 +39,16 @@ class DatabasePostgres {
           cargo TEXT NOT NULL,
           perfil TEXT NOT NULL DEFAULT 'analista',
           status TEXT NOT NULL DEFAULT 'online',
+          horario_inicio TEXT,
+          horario_fim TEXT,
           fila TEXT NOT NULL DEFAULT 'pos_rapidos_medios',
           meta_diaria INTEGER DEFAULT 50,
           criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      await this.pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS horario_inicio TEXT`);
+      await this.pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS horario_fim TEXT`);
 
       await this.pool.query(`
         CREATE TABLE IF NOT EXISTS ss (
