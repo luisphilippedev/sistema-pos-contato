@@ -1140,6 +1140,7 @@ app.get('/api/logs-importacao/:id/detalhes', authenticateToken, async (req, res)
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-  console.log(`Acesse: http://localhost:${PORT}`);
+  console.log(`✅ Servidor rodando na porta ${PORT}`);
+  console.log(`📍 Acesse: http://localhost:${PORT}`);
+  console.log(`🔧 Modo: ${isPostgres ? 'PostgreSQL (Produção)' : 'SQLite (Desenvolvimento)'}`);
 });
