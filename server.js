@@ -283,17 +283,33 @@ app.get('/api/ss/:id', authenticateToken, async (req, res) => {
 app.get('/api/minhas-ss', authenticateToken, async (req, res) => {
   try {
     // Primeiro, marcar SS's vencidas (mais de 4 dias desde data_envio_pesquisa)
-    const quatroDiasAtras = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
-    const dataLimite = isPostgres
-      ? quatroDiasAtras.toISOString()
-      : quatroDiasAtras.toISOString().replace('T', ' ').replace('Z', '');
+    // Buscar todas SS's pendentes com data_envio_pesquisa
+    const ssPendentes = await db.query(`
+      SELECT id, data_envio_pesquisa 
+      FROM ss 
+      WHERE status = 'pendente' AND data_envio_pesquisa IS NOT NULL
+    `);
     
-    await db.run(`
-      UPDATE ss 
-      SET status = 'vencida' 
-      WHERE status = 'pendente' 
-      AND criado_em < ?
-    `, [dataLimite]);
+    const agora = new Date();
+    const idsVencidas = [];
+    
+    for (const ss of ssPendentes) {
+      const dataEnvio = new Date(ss.data_envio_pesquisa);
+      const prazoFinal = new Date(dataEnvio.getTime() + 4 * 24 * 60 * 60 * 1000);
+      if (agora > prazoFinal) {
+        idsVencidas.push(ss.id);
+      }
+    }
+    
+    // Marcar como vencidas
+    if (idsVencidas.length > 0) {
+      const placeholders = idsVencidas.map(() => '?').join(',');
+      await db.run(`
+        UPDATE ss 
+        SET status = 'vencida' 
+        WHERE id IN (${placeholders})
+      `, idsVencidas);
+    }
     
     // Buscar SS's pendentes com contagem de monitoramentos
     const ss = await db.query(`
@@ -475,6 +491,34 @@ app.post('/api/ss/redistribuir-automatico', authenticateToken, authenticateLider
 // Listar SS's para redistribuição (apenas liderança)
 app.get('/api/ss/para-redistribuir', authenticateToken, authenticateLideranca, async (req, res) => {
   try {
+    // Primeiro atualizar SS's vencidas
+    const ssPendentes = await db.query(`
+      SELECT id, data_envio_pesquisa 
+      FROM ss 
+      WHERE status = 'pendente' AND data_envio_pesquisa IS NOT NULL
+    `);
+    
+    const agora = new Date();
+    const idsVencidas = [];
+    
+    for (const ss of ssPendentes) {
+      const dataEnvio = new Date(ss.data_envio_pesquisa);
+      const prazoFinal = new Date(dataEnvio.getTime() + 4 * 24 * 60 * 60 * 1000);
+      if (agora > prazoFinal) {
+        idsVencidas.push(ss.id);
+      }
+    }
+    
+    if (idsVencidas.length > 0) {
+      const placeholders = idsVencidas.map(() => '?').join(',');
+      await db.run(`
+        UPDATE ss 
+        SET status = 'vencida' 
+        WHERE id IN (${placeholders})
+      `, idsVencidas);
+    }
+
+    // Buscar todas SS's pendentes de todos os usuários
     const ss = await db.query(`
       SELECT s.*, u.nome as responsavel_nome, u.status as responsavel_status,
              u.horario_inicio as responsavel_inicio, u.horario_fim as responsavel_fim
