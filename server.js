@@ -363,17 +363,77 @@ app.post('/api/ss/redistribuir', authenticateToken, authenticateLideranca, async
   }
 });
 
+// Redistribuir SS automaticamente (apenas liderança)
+app.post('/api/ss/redistribuir-automatico', authenticateToken, authenticateLideranca, async (req, res) => {
+  try {
+    const { ss_ids } = req.body;
+    if (!Array.isArray(ss_ids) || ss_ids.length === 0) {
+      return res.status(400).json({ error: 'Selecione ao menos uma SS' });
+    }
+
+    const usuarios = await db.all(
+      `SELECT id, nome, fila, status, horario_inicio, horario_fim FROM usuarios ORDER BY nome`
+    );
+    const usuariosOnline = usuarios.filter(u => getEffectiveStatus(u) === 'online');
+
+    const contadorFila = {};
+
+    for (const ss_id of ss_ids) {
+      const ss = await db.get('SELECT id, responsavel_id, fila, cluster FROM ss WHERE id = ?', [ss_id]);
+      if (!ss) continue;
+
+      const fila = ss.fila || ss.cluster;
+      const usuariosFila = usuariosOnline.filter(u => u.fila === fila);
+      if (usuariosFila.length === 0) {
+        continue;
+      }
+
+      const idx = (contadorFila[fila] || 0) % usuariosFila.length;
+      const usuarioDestino = usuariosFila[idx];
+      contadorFila[fila] = (contadorFila[fila] || 0) + 1;
+
+      await db.run(
+        'UPDATE ss SET responsavel_id = ? WHERE id = ?',
+        [usuarioDestino.id, ss_id]
+      );
+
+      await db.run(
+        'INSERT INTO redistribuicoes (ss_id, usuario_origem_id, usuario_destino_id, realizado_por_id) VALUES (?, ?, ?, ?)',
+        [ss_id, ss.responsavel_id, usuarioDestino.id, req.user.id]
+      );
+    }
+
+    res.json({ message: 'Redistribuição automática concluída' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Listar SS's para redistribuição (apenas liderança)
 app.get('/api/ss/para-redistribuir', authenticateToken, authenticateLideranca, async (req, res) => {
   try {
     const ss = await db.query(`
-      SELECT s.*, u.nome as responsavel_nome, u.status as responsavel_status
+      SELECT s.*, u.nome as responsavel_nome, u.status as responsavel_status,
+             u.horario_inicio as responsavel_inicio, u.horario_fim as responsavel_fim
       FROM ss s
       LEFT JOIN usuarios u ON s.responsavel_id = u.id
       WHERE s.status = "pendente"
       ORDER BY s.criado_em DESC
     `);
-    res.json(ss);
+
+    const ssComStatus = ss.map(item => {
+      const responsavel = {
+        status: item.responsavel_status,
+        horario_inicio: item.responsavel_inicio,
+        horario_fim: item.responsavel_fim
+      };
+      return {
+        ...item,
+        responsavel_status: getEffectiveStatus(responsavel)
+      };
+    });
+
+    res.json(ssComStatus);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -731,25 +791,47 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
 
         // Verificar se SS já existe
         const ssExistente = await db.get(
-          `SELECT id FROM ss WHERE numero_ss = ?`,
+          `SELECT id, responsavel_id, status FROM ss WHERE numero_ss = ?`,
           [numeroSS]
         );
 
         if (ssExistente) {
+          // Se pesquisa respondida = sim, marcar como respondida e tirar da análise
+          if (pesquisaRespondida === 'sim') {
+            await db.run(
+              `UPDATE ss SET status = 'respondida' WHERE id = ?`,
+              [ssExistente.id]
+            );
+            sucessos++;
+            await db.run(
+              `INSERT INTO detalhes_importacao (log_id, status, numero_ss, placa, cluster, mensagem) 
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [logId, 'sucesso', numeroSS, placa, cluster, 'SS já existia e foi marcada como respondida']
+            );
+          } else {
+            erros++;
+            await db.run(
+              `INSERT INTO detalhes_importacao (log_id, status, numero_ss, placa, cluster, mensagem) 
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [logId, 'erro', numeroSS, placa, cluster, 'SS já existe no sistema']
+            );
+          }
+          continue;
+        }
+
+        // Distribuir somente para usuários online da mesma fila
+        const usuariosFila = usuariosOnline.filter(u => u.fila === cluster);
+        if (usuariosFila.length === 0) {
           erros++;
           await db.run(
             `INSERT INTO detalhes_importacao (log_id, status, numero_ss, placa, cluster, mensagem) 
              VALUES (?, ?, ?, ?, ?, ?)`,
-            [logId, 'erro', numeroSS, placa, cluster, 'SS já existe no sistema']
+            [logId, 'erro', numeroSS, placa, cluster, 'Nenhum usuário online na fila correspondente']
           );
           continue;
         }
 
-        // Distribuir para usuário online da mesma fila
-        const usuariosFila = usuariosOnline.filter(u => u.fila === cluster);
-        const usuarioResponsavel = usuariosFila.length > 0
-          ? usuariosFila[totalProcessadas % usuariosFila.length]
-          : usuariosOnline[totalProcessadas % usuariosOnline.length];
+        const usuarioResponsavel = usuariosFila[totalProcessadas % usuariosFila.length];
 
         // Definir status baseado em Pesquisa_respondida
         const status = pesquisaRespondida === 'sim' ? 'respondida' : 'pendente';
@@ -758,8 +840,8 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
         await db.run(
           `INSERT INTO ss (
             numero_ss, placa, regional, servico_principal, data_saida, 
-            data_envio_pesquisa, cluster, responsavel_id, status, criado_em
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+            data_envio_pesquisa, cluster, fila, responsavel_id, status, criado_em
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
           [
             numeroSS,
             placa,
@@ -767,6 +849,7 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
             servico,
             dataSaida,
             linha[10] || null, // Data_Envio_Formatada
+            cluster,
             cluster,
             usuarioResponsavel.id,
             status

@@ -198,6 +198,10 @@
             </div>
             <div class="modal-body">
                 <div class="redistribuir-filters">
+                    <div class="redistribuir-search">
+                        <input type="text" id="filtroRedistribuirSS" placeholder="Buscar por SS">
+                        <input type="text" id="filtroRedistribuirPlaca" placeholder="Buscar por Placa">
+                    </div>
                     <label>
                         <input type="checkbox" id="filtrarAusentes"> Mostrar apenas SS's de usuários ausentes
                     </label>
@@ -225,6 +229,7 @@
                     <select id="usuarioDestino" class="form-select">
                         <option value="">Selecione o usuário de destino</option>
                     </select>
+                    <button id="btnRedistribuirAutomatico" class="btn-secondary">Redistribuir Automático</button>
                     <button id="btnRedistribuirLote" class="btn-primary">Redistribuir Selecionadas</button>
                 </div>
             </div>

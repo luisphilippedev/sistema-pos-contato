@@ -3,6 +3,7 @@ const API_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3000/api' 
   : `${window.location.origin}/api`;
 let usuarioLogado = null;
+let ssRedistribuirOriginal = [];
 
 // ===== UTILITÁRIOS =====
 
@@ -271,35 +272,51 @@ async function carregarSSParaRedistribuir() {
         });
         
         const data = await response.json();
+        ssRedistribuirOriginal = data;
         
         const tbody = document.getElementById('redistribuirTableBody');
         tbody.innerHTML = '';
         
-        data.forEach(ss => {
-            const statusBadge = ss.responsavel_status === 'ausente' ? 
-                '<span style="color: #d32f2f; font-weight: 600;">Ausente</span>' : 
-                '<span style="color: #2d5f3f; font-weight: 600;">Online</span>';
-            
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><input type="checkbox" class="ss-checkbox" data-ss-id="${ss.id}"></td>
-                <td>${ss.numero_ss || '-'}</td>
-                <td>${ss.placa || '-'}</td>
-                <td>${ss.responsavel_nome || 'Não atribuída'}</td>
-                <td>${statusBadge}</td>
-                <td>${formatarFila(ss.fila)}</td>
-                <td>
-                    <button class="btn-primary btn-sm" onclick="redistribuirUnica(${ss.id})">
-                        Redistribuir
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
+        renderizarSSRedistribuicao(data);
         
     } catch (error) {
         console.error('Erro ao carregar SS para redistribuir:', error);
     }
+}
+
+function renderizarSSRedistribuicao(lista) {
+    const tbody = document.getElementById('redistribuirTableBody');
+    tbody.innerHTML = '';
+
+    if (lista.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#888;">Nenhuma SS encontrada</td></tr>';
+        return;
+    }
+
+    lista.forEach(ss => {
+        let statusBadge = '<span style="color: #d32f2f; font-weight: 600;">Ausente</span>';
+        if (ss.responsavel_status === 'online') {
+            statusBadge = '<span style="color: #2d5f3f; font-weight: 600;">Online</span>';
+        } else if (ss.responsavel_status === 'offline') {
+            statusBadge = '<span style="color: #757575; font-weight: 600;">Offline</span>';
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="checkbox" class="ss-checkbox" data-ss-id="${ss.id}"></td>
+            <td>${ss.numero_ss || '-'}</td>
+            <td>${ss.placa || '-'}</td>
+            <td>${ss.responsavel_nome || 'Não atribuída'}</td>
+            <td>${statusBadge}</td>
+            <td>${formatarFila(ss.fila || ss.cluster || '')}</td>
+            <td>
+                <button class="btn-primary btn-sm" onclick="redistribuirUnica(${ss.id})">
+                    Redistribuir
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 async function carregarUsuariosDestino() {
@@ -333,6 +350,30 @@ document.getElementById('selectAll').addEventListener('change', (e) => {
     const checkboxes = document.querySelectorAll('.ss-checkbox');
     checkboxes.forEach(cb => cb.checked = e.target.checked);
 });
+
+// Filtros de pesquisa (SS e Placa)
+document.getElementById('filtroRedistribuirSS')?.addEventListener('input', aplicarFiltroRedistribuir);
+document.getElementById('filtroRedistribuirPlaca')?.addEventListener('input', aplicarFiltroRedistribuir);
+document.getElementById('filtrarAusentes')?.addEventListener('change', aplicarFiltroRedistribuir);
+
+function aplicarFiltroRedistribuir() {
+    const filtroSS = document.getElementById('filtroRedistribuirSS')?.value.toLowerCase() || '';
+    const filtroPlaca = document.getElementById('filtroRedistribuirPlaca')?.value.toLowerCase() || '';
+    const apenasAusentes = document.getElementById('filtrarAusentes')?.checked;
+
+    let lista = [...ssRedistribuirOriginal];
+    if (filtroSS) {
+        lista = lista.filter(ss => (ss.numero_ss || '').toLowerCase().includes(filtroSS));
+    }
+    if (filtroPlaca) {
+        lista = lista.filter(ss => (ss.placa || '').toLowerCase().includes(filtroPlaca));
+    }
+    if (apenasAusentes) {
+        lista = lista.filter(ss => ss.responsavel_status === 'ausente');
+    }
+
+    renderizarSSRedistribuicao(lista);
+}
 
 // Redistribuir em lote
 document.getElementById('btnRedistribuirLote').addEventListener('click', async () => {
@@ -372,11 +413,42 @@ document.getElementById('btnRedistribuirLote').addEventListener('click', async (
     }
 });
 
+// Redistribuir automaticamente
+document.getElementById('btnRedistribuirAutomatico')?.addEventListener('click', async () => {
+    const checkboxes = document.querySelectorAll('.ss-checkbox:checked');
+    const ss_ids = Array.from(checkboxes).map(cb => parseInt(cb.dataset.ssId));
+
+    if (ss_ids.length === 0) {
+        mostrarErro('Selecione pelo menos uma SS');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/ss/redistribuir-automatico`, {
+            method: 'POST',
+            headers: headers(),
+            body: JSON.stringify({ ss_ids })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error);
+        }
+
+        mostrarSucesso('Redistribuição automática concluída!');
+        fecharModal('modalRedistribuir');
+    } catch (error) {
+        mostrarErro(error.message);
+    }
+});
+
 // Redistribuir SS única
 async function redistribuirUnica(ssId) {
-    const usuarioDestino = prompt('Digite o ID do usuário de destino:');
-    
-    if (!usuarioDestino) return;
+    const usuarioDestino = document.getElementById('usuarioDestino').value;
+    if (!usuarioDestino) {
+        mostrarErro('Selecione o usuário de destino');
+        return;
+    }
     
     try {
         const response = await fetch(`${API_URL}/ss/redistribuir`, {
