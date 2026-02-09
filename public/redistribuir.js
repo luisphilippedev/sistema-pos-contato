@@ -19,14 +19,26 @@ async function carregarSSParaRedistribuir() {
         const response = await fetch(`${API_URL}/ss/para-redistribuir`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
+            console.error('Erro na resposta:', response.status, error);
+            
+            if (response.status === 403) {
+                mostrarErro('Acesso restrito. Apenas usuários com perfil de liderança podem acessar esta página.');
+                setTimeout(() => window.location.href = 'index.html', 3000);
+                return;
+            }
+            
             const msg = error.error || 'Erro ao carregar SS. Verifique sua conexão.';
             mostrarErro(msg);
             return;
         }
+        
         esconderErro();
-        ssLista = await response.json();
+        const dados = await response.json();
+        console.log('SS\'s carregadas:', dados.length);
+        ssLista = dados;
         aplicarFiltros();
     } catch (error) {
         console.error('Erro ao carregar SS:', error);
