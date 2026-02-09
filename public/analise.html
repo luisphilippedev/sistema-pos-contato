@@ -33,6 +33,9 @@
                 <h1 class="title-analise">
                     Pós contato - <span id="filaAnalise">Revisão + Serv. Rápido</span>
                 </h1>
+                <div class="ss-count-pill">
+                    SS atribuídas: <span id="ssCountAnalise">0</span>
+                </div>
             </div>
             
             <div class="header-right">
@@ -58,6 +61,7 @@
                             <th>Regional</th>
                             <th>Serviço Principal</th>
                             <th>Data Envio Pesquisa</th>
+                            <th>Contato com sucesso</th>
                             <th>Monitoramentos</th>
                             <th class="sortable" onclick="toggleOrdenacao()">
                                 Prazo <span id="sortIcon">🔽</span>
@@ -72,6 +76,14 @@
                             <th><input type="text" id="filtroRegional" placeholder="Filtrar Regional" class="filter-input"></th>
                             <th><input type="text" id="filtroServico" placeholder="Filtrar Serviço" class="filter-input"></th>
                             <th><input type="date" id="filtroDataPesquisa" class="filter-input"></th>
+                            <th>
+                                <select id="filtroContatoSucesso" class="filter-input">
+                                    <option value="">Todos</option>
+                                    <option value="resolvido">Resolvido</option>
+                                    <option value="sem sucesso">Sem sucesso</option>
+                                    <option value="fora de atuação">Fora de atuação</option>
+                                </select>
+                            </th>
                             <th></th>
                             <th></th>
                             <th></th>

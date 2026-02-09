@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redistribuição de SS</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="redistribuir.css" />
+</head>
+<body>
+    <div class="redistribuir-page">
+        <header class="redistribuir-header">
+            <button class="btn-voltar" onclick="window.location.href='index.html'">← Voltar</button>
+            <div class="header-title">
+                <h1>Redistribuição de SS</h1>
+                <p>Selecione SS's em análise e escolha o modo de redistribuição</p>
+            </div>
+        </header>
+
+        <section class="redistribuir-filtros">
+            <div class="filtro">
+                <label for="filtroFila">Fila</label>
+                <select id="filtroFila">
+                    <option value="">Todas</option>
+                    <option value="revisao_serv_rapido">Revisão + Serv. Rápido</option>
+                    <option value="servico_medio">Serviço Médio</option>
+                    <option value="servico_complexo">Serviço Complexo</option>
+                    <option value="especiais">Especiais</option>
+                </select>
+            </div>
+            <div class="filtro">
+                <label for="filtroUsuario">Usuário</label>
+                <select id="filtroUsuario">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="filtro">
+                <label for="filtroSS">SS</label>
+                <input type="text" id="filtroSS" placeholder="Buscar SS" />
+            </div>
+            <div class="filtro">
+                <label for="filtroRegional">Regional</label>
+                <input type="text" id="filtroRegional" placeholder="Buscar regional" />
+            </div>
+            <div class="filtro">
+                <label for="filtroPlaca">Placa</label>
+                <input type="text" id="filtroPlaca" placeholder="Buscar placa" />
+            </div>
+        </section>
+
+        <section class="redistribuir-tabela">
+            <div class="tabela-header">
+                <div>
+                    <input type="checkbox" id="selecionarTodos" />
+                    <label for="selecionarTodos">Selecionar todas</label>
+                </div>
+                <span id="contadorSelecionadas">0 selecionadas</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>SS</th>
+                        <th>Placa</th>
+                        <th>Regional</th>
+                        <th>Fila</th>
+                        <th>Responsável</th>
+                        <th>Status</th>
+                        <th>Data Saída</th>
+                    </tr>
+                </thead>
+                <tbody id="redistribuirBody"></tbody>
+            </table>
+        </section>
+
+        <section class="redistribuir-acoes">
+            <div class="acao-left">
+                <div class="destino">
+                    <label for="usuarioDestino">Redistribuição individual</label>
+                    <select id="usuarioDestino">
+                        <option value="">Selecione um usuário</option>
+                    </select>
+                </div>
+            </div>
+            <div class="acao-right">
+                <button id="btnRedistribuirAuto" class="btn-secondary">Redistribuição (automática)</button>
+                <div class="disclaimer">Distribui entre usuários online na fila correspondente</div>
+                <button id="btnRedistribuirInd" class="btn-primary">Redistribuição individual</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="redistribuir.js"></script>
+</body>
+</html>

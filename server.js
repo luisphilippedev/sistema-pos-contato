@@ -298,7 +298,14 @@ app.get('/api/minhas-ss', authenticateToken, async (req, res) => {
     // Buscar SS's pendentes com contagem de monitoramentos
     const ss = await db.query(`
       SELECT s.*, 
-             COUNT(c.id) as total_monitoramentos
+             COUNT(c.id) as total_monitoramentos,
+             (
+               SELECT c2.sucesso_contato
+               FROM contatos c2
+               WHERE c2.ss_id = s.id
+               ORDER BY c2.criado_em DESC
+               LIMIT 1
+             ) as ultimo_sucesso_contato
       FROM ss s
       LEFT JOIN contatos c ON s.id = c.ss_id
       WHERE s.responsavel_id = ? AND s.status = 'pendente'

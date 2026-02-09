@@ -74,8 +74,11 @@ async function carregarUsuarioAtual() {
 // ===== FILTROS E ORDENAÇÃO =====
 
 function setupFiltros() {
-    ['filtroSS', 'filtroPlaca', 'filtroDataSaida', 'filtroCluster', 'filtroRegional', 'filtroServico', 'filtroDataPesquisa'].forEach(id => {
-        document.getElementById(id)?.addEventListener('input', aplicarFiltrosEOrdenacao);
+    ['filtroSS', 'filtroPlaca', 'filtroDataSaida', 'filtroCluster', 'filtroRegional', 'filtroServico', 'filtroDataPesquisa', 'filtroContatoSucesso'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const eventType = el.tagName === 'SELECT' ? 'change' : 'input';
+        el.addEventListener(eventType, aplicarFiltrosEOrdenacao);
     });
 }
 
@@ -90,6 +93,7 @@ function aplicarFiltrosEOrdenacao() {
     const filtroRegional = document.getElementById('filtroRegional')?.value.toLowerCase();
     const filtroServico = document.getElementById('filtroServico')?.value.toLowerCase();
     const filtroDataPesquisa = document.getElementById('filtroDataPesquisa')?.value;
+    const filtroContatoSucesso = document.getElementById('filtroContatoSucesso')?.value.toLowerCase();
     
     if (filtroSS) {
         listaFiltrada = listaFiltrada.filter(ss => (ss.numero_ss || '').toLowerCase().includes(filtroSS));
@@ -111,6 +115,9 @@ function aplicarFiltrosEOrdenacao() {
     }
     if (filtroDataPesquisa) {
         listaFiltrada = listaFiltrada.filter(ss => ss.data_envio_pesquisa && ss.data_envio_pesquisa.startsWith(filtroDataPesquisa));
+    }
+    if (filtroContatoSucesso) {
+        listaFiltrada = listaFiltrada.filter(ss => (ss.ultimo_sucesso_contato || '').toLowerCase() === filtroContatoSucesso);
     }
     
     // Ordenar por prazo
@@ -163,6 +170,7 @@ async function carregarSSsUsuario() {
         });
         
         ssListaOriginal = await response.json();
+        document.getElementById('ssCountAnalise').textContent = ssListaOriginal.length;
         aplicarFiltrosEOrdenacao();
         
     } catch (error) {
@@ -178,7 +186,7 @@ function renderizarTabela(ssList) {
     if (ssList.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="10" style="text-align: center; padding: 40px; color: #999;">
+                <td colspan="11" style="text-align: center; padding: 40px; color: #999;">
                     Nenhuma SS atribuída no momento
                 </td>
             </tr>
@@ -200,6 +208,7 @@ function renderizarTabela(ssList) {
             <td>${ss.regional || '-'}</td>
             <td>${ss.servico_principal || '-'}</td>
             <td>${formatarData(ss.data_envio_pesquisa)}</td>
+            <td>${renderizarContatoSucesso(ss.ultimo_sucesso_contato)}</td>
             <td class="${monitClass}">${monitText}</td>
             <td class="prazo-timer">${renderizarPrazo(ss.data_envio_pesquisa)}</td>
             <td>
@@ -214,15 +223,23 @@ function renderizarTabela(ssList) {
 
 function formatarData(dataStr) {
     if (!dataStr) return '-';
-    const data = new Date(dataStr);
-    return data.toLocaleString('pt-BR', {
+    const raw = String(dataStr).replace(' ', 'T');
+    const data = raw.length <= 10 ? new Date(`${raw}T00:00:00`) : new Date(raw);
+    if (Number.isNaN(data.getTime())) return dataStr;
+    return data.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+        year: 'numeric'
     });
+}
+
+function renderizarContatoSucesso(status) {
+    if (!status) return '<span class="contato-badge contato-neutral">—</span>';
+    const valor = status.toLowerCase();
+    if (valor === 'resolvido') return '<span class="contato-badge contato-ok">Resolvido</span>';
+    if (valor === 'sem sucesso') return '<span class="contato-badge contato-warn">Sem sucesso</span>';
+    if (valor === 'fora de atuação') return '<span class="contato-badge contato-info">Fora de atuação</span>';
+    return `<span class="contato-badge contato-neutral">${status}</span>`;
 }
 
 function renderizarPrazo(dataEnvioPesquisa) {

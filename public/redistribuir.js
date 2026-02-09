@@ -1,0 +1,257 @@
+const API_URL = window.location.hostname === 'localhost'
+    ? 'http://localhost:3000/api'
+    : 'https://sistema-pos-contato-2.onrender.com/api';
+
+const token = localStorage.getItem('token');
+if (!token) {
+    window.location.href = 'login.html';
+}
+
+let ssLista = [];
+let ssListaFiltrada = [];
+let usuariosOnline = [];
+let ssSelecionadas = new Set();
+
+// ===== CARREGAR DADOS =====
+
+async function carregarSSParaRedistribuir() {
+    try {
+        const response = await fetch(`${API_URL}/ss/para-redistribuir`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        ssLista = await response.json();
+        aplicarFiltros();
+    } catch (error) {
+        console.error('Erro ao carregar SS:', error);
+        alert('Erro ao carregar SS. Verifique sua conexão.');
+    }
+}
+
+async function carregarUsuarios() {
+    try {
+        const response = await fetch(`${API_URL}/usuarios`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const usuarios = await response.json();
+        usuariosOnline = usuarios.filter(u => u.status === 'online' || u.status === 'ausente');
+        
+        // Preencher filtro e destino
+        const filtroUsuario = document.getElementById('filtroUsuario');
+        const usuarioDestino = document.getElementById('usuarioDestino');
+        
+        usuarios.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.id;
+            opt.textContent = `${u.nome} - ${formatarFila(u.fila)}`;
+            filtroUsuario.appendChild(opt.cloneNode(true));
+            
+            if (u.status === 'online' || u.status === 'ausente') {
+                const badge = u.status === 'online' ? '🟢' : '🟠';
+                opt.textContent = `${badge} ${u.nome} - ${formatarFila(u.fila)}`;
+                usuarioDestino.appendChild(opt);
+            }
+        });
+    } catch (error) {
+        console.error('Erro ao carregar usuários:', error);
+    }
+}
+
+function formatarFila(fila) {
+    const filas = {
+        'revisao_serv_rapido': 'Revisão + Serv. Rápido',
+        'servico_complexo': 'Serviço Complexo',
+        'servico_medio': 'Serviço Médio',
+        'especiais': 'Especiais'
+    };
+    return filas[fila] || fila;
+}
+
+// ===== FILTROS =====
+
+function aplicarFiltros() {
+    const filtroFila = document.getElementById('filtroFila').value;
+    const filtroUsuario = document.getElementById('filtroUsuario').value;
+    const filtroSS = document.getElementById('filtroSS').value.toLowerCase();
+    const filtroRegional = document.getElementById('filtroRegional').value.toLowerCase();
+    const filtroPlaca = document.getElementById('filtroPlaca').value.toLowerCase();
+
+    ssListaFiltrada = ssLista.filter(ss => {
+        if (filtroFila && (ss.fila || ss.cluster) !== filtroFila) return false;
+        if (filtroUsuario && String(ss.responsavel_id) !== filtroUsuario) return false;
+        if (filtroSS && !(ss.numero_ss || '').toLowerCase().includes(filtroSS)) return false;
+        if (filtroRegional && !(ss.regional || '').toLowerCase().includes(filtroRegional)) return false;
+        if (filtroPlaca && !(ss.placa || '').toLowerCase().includes(filtroPlaca)) return false;
+        return true;
+    });
+
+    renderizar();
+}
+
+function renderizar() {
+    const tbody = document.getElementById('redistribuirBody');
+    tbody.innerHTML = '';
+
+    ssListaFiltrada.forEach(ss => {
+        const statusClass = ss.responsavel_status === 'online' ? 'status-online' :
+                            ss.responsavel_status === 'ausente' ? 'status-ausente' : 'status-offline';
+        const statusEmoji = ss.responsavel_status === 'online' ? '🟢' :
+                            ss.responsavel_status === 'ausente' ? '🟠' : '⚫';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="checkbox" class="checkbox-ss" data-id="${ss.id}" ${ssSelecionadas.has(ss.id) ? 'checked' : ''}></td>
+            <td>${ss.numero_ss || '-'}</td>
+            <td><strong>${ss.placa || '-'}</strong></td>
+            <td>${ss.regional || '-'}</td>
+            <td>${formatarFila(ss.fila || ss.cluster)}</td>
+            <td>${ss.responsavel_nome || '-'}</td>
+            <td><span class="status-pill ${statusClass}">${statusEmoji} ${ss.responsavel_status || 'offline'}</span></td>
+            <td>${formatarData(ss.data_saida)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    atualizarContador();
+}
+
+function formatarData(dataStr) {
+    if (!dataStr) return '-';
+    const raw = String(dataStr).replace(' ', 'T');
+    const data = raw.length <= 10 ? new Date(`${raw}T00:00:00`) : new Date(raw);
+    if (Number.isNaN(data.getTime())) return dataStr;
+    return data.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
+function atualizarContador() {
+    document.getElementById('contadorSelecionadas').textContent = `${ssSelecionadas.size} selecionadas`;
+}
+
+// ===== SELEÇÃO =====
+
+document.getElementById('redistribuirBody')?.addEventListener('change', (e) => {
+    if (e.target.classList.contains('checkbox-ss')) {
+        const id = Number(e.target.dataset.id);
+        if (e.target.checked) {
+            ssSelecionadas.add(id);
+        } else {
+            ssSelecionadas.delete(id);
+        }
+        atualizarContador();
+    }
+});
+
+document.getElementById('selecionarTodos')?.addEventListener('change', (e) => {
+    const checkboxes = document.querySelectorAll('.checkbox-ss');
+    checkboxes.forEach(cb => {
+        cb.checked = e.target.checked;
+        const id = Number(cb.dataset.id);
+        if (e.target.checked) {
+            ssSelecionadas.add(id);
+        } else {
+            ssSelecionadas.delete(id);
+        }
+    });
+    atualizarContador();
+});
+
+// ===== REDISTRIBUIÇÃO =====
+
+document.getElementById('btnRedistribuirAuto')?.addEventListener('click', async () => {
+    if (ssSelecionadas.size === 0) {
+        alert('Selecione ao menos uma SS');
+        return;
+    }
+
+    if (!confirm(`Redistribuir ${ssSelecionadas.size} SS(s) automaticamente entre usuários online?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/ss/redistribuir-automatico`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ ss_ids: Array.from(ssSelecionadas) })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            alert(error.error || 'Erro ao redistribuir');
+            return;
+        }
+
+        alert('Redistribuição automática concluída!');
+        ssSelecionadas.clear();
+        await carregarSSParaRedistribuir();
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao redistribuir');
+    }
+});
+
+document.getElementById('btnRedistribuirInd')?.addEventListener('click', async () => {
+    const usuarioDestinoId = document.getElementById('usuarioDestino').value;
+    
+    if (ssSelecionadas.size === 0) {
+        alert('Selecione ao menos uma SS');
+        return;
+    }
+
+    if (!usuarioDestinoId) {
+        alert('Selecione um usuário de destino');
+        return;
+    }
+
+    if (!confirm(`Redistribuir ${ssSelecionadas.size} SS(s) para o usuário selecionado?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/ss/redistribuir`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                ss_ids: Array.from(ssSelecionadas),
+                usuario_destino_id: Number(usuarioDestinoId)
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            alert(error.error || 'Erro ao redistribuir');
+            return;
+        }
+
+        alert('Redistribuição individual concluída!');
+        ssSelecionadas.clear();
+        document.getElementById('usuarioDestino').value = '';
+        await carregarSSParaRedistribuir();
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao redistribuir');
+    }
+});
+
+// ===== EVENTOS DE FILTRO =====
+
+['filtroFila', 'filtroUsuario', 'filtroSS', 'filtroRegional', 'filtroPlaca'].forEach(id => {
+    const el = document.getElementById(id);
+    const eventType = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(eventType, aplicarFiltros);
+});
+
+// ===== INICIALIZAÇÃO =====
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await carregarUsuarios();
+    await carregarSSParaRedistribuir();
+});
