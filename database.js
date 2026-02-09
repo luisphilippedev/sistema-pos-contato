@@ -149,15 +149,20 @@ class Database {
   criarUsuarioAdmin() {
     const senhaHash = bcrypt.hashSync('admin123', 10);
     this.db.run(`
-      INSERT OR IGNORE INTO usuarios (nome, email, senha, cargo, perfil, status, fila)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, ['Luis Philippe', 'admin@localiza.com', senhaHash, 'Liderança', 'lideranca', 'online', 'pos_rapidos_medios'], (err) => {
+      INSERT OR IGNORE INTO usuarios (nome, email, senha, cargo, perfil, status, fila, horario_inicio, horario_fim)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, ['Luis Philippe', 'admin@localiza.com', senhaHash, 'Liderança', 'lideranca', 'online', 'pos_rapidos_medios', '08:00', '18:00'], (err) => {
       if (err) {
         console.log('Usuário admin já existe');
       } else {
-        console.log('Usuário admin criado: admin@localiza.com / admin123');
+        console.log('Usuário admin criado: admin@localiza.com / admin123 (08:00-18:00)');
       }
     });
+    
+    // Atualizar horários do admin se já existir
+    this.db.run(`
+      UPDATE usuarios SET horario_inicio = '08:00', horario_fim = '18:00' WHERE email = 'admin@localiza.com'
+    `);
   }
 
   query(sql, params = []) {

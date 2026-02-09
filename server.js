@@ -823,11 +823,22 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
       try {
         const numeroSS = String(linha[8] || '').trim();
         const placa = String(linha[7] || '').trim();
-        const cluster = String(linha[1] || '').trim();
+        const clusterRaw = String(linha[1] || '').trim();
         const regional = String(linha[2] || '').trim();
         const servico = String(linha[6] || '').trim();
         const dataSaida = linha[0] || '';
         const pesquisaRespondida = String(linha[16] || '').trim().toLowerCase();
+
+        // Normalizar cluster para formato do banco
+        const clusterMap = {
+          'Pós Rápidos e Médios': 'pos_rapidos_medios',
+          'pos rapidos e medios': 'pos_rapidos_medios',
+          'Pós Complexo': 'pos_complexo',
+          'pos complexo': 'pos_complexo',
+          'Pós Especiais': 'pos_especiais',
+          'pos especiais': 'pos_especiais'
+        };
+        const cluster = clusterMap[clusterRaw] || clusterRaw.toLowerCase().replace(/\s+/g, '_').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
         if (!numeroSS) {
           erros++;

@@ -219,11 +219,16 @@ class DatabasePostgres {
       // PostgreSQL
       try {
         await this.pool.query(`
-          INSERT INTO usuarios (nome, email, senha, cargo, perfil, status, fila)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          INSERT INTO usuarios (nome, email, senha, cargo, perfil, status, fila, horario_inicio, horario_fim)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           ON CONFLICT (email) DO NOTHING
-        `, ['Luis Philippe', 'admin@localiza.com', senhaHash, 'Liderança', 'lideranca', 'online', 'pos_rapidos_medios']);
-        console.log('Usuário admin verificado: admin@localiza.com / admin123');
+        `, ['Luis Philippe', 'admin@localiza.com', senhaHash, 'Liderança', 'lideranca', 'online', 'pos_rapidos_medios', '08:00', '18:00']);
+        console.log('Usuário admin verificado: admin@localiza.com / admin123 (08:00-18:00)');
+        
+        // Atualizar horários do admin se já existir
+        await this.pool.query(`
+          UPDATE usuarios SET horario_inicio = $1, horario_fim = $2 WHERE email = $3
+        `, ['08:00', '18:00', 'admin@localiza.com']);
       } catch (error) {
         console.log('Usuário admin já existe');
       }
