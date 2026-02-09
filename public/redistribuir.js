@@ -140,14 +140,43 @@ function renderizar() {
     atualizarContador();
 }
 
+function excelSerialToDate(value) {
+    const serial = Number(value);
+    if (!Number.isFinite(serial)) return null;
+    const ms = (serial - 25569) * 86400 * 1000;
+    const date = new Date(ms);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function parseDateFlexible(value) {
+    if (!value && value !== 0) return null;
+    if (value instanceof Date) return value;
+    if (typeof value === 'number') return excelSerialToDate(value);
+    const str = String(value).trim();
+    if (!str) return null;
+    if (/^\d+(\.\d+)?$/.test(str)) return excelSerialToDate(str);
+    if (str.includes('/')) {
+        const [datePart, timePart = ''] = str.split(' ');
+        const [d, m, y] = datePart.split('/');
+        if (!y) return null;
+        const [hh = '0', mm = '0', ss = '0'] = timePart.split(':');
+        return new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss));
+    }
+    const parsed = new Date(str.replace(' ', 'T'));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function formatarData(dataStr) {
     if (!dataStr) return '-';
-    const data = new Date(dataStr);
-    if (isNaN(data.getTime())) return '-';
+    const data = parseDateFlexible(dataStr);
+    if (!data) return '-';
     const dia = String(data.getDate()).padStart(2, '0');
     const mes = String(data.getMonth() + 1).padStart(2, '0');
     const ano = data.getFullYear();
-    return `${dia}/${mes}/${ano}`;
+    const hora = String(data.getHours()).padStart(2, '0');
+    const min = String(data.getMinutes()).padStart(2, '0');
+    const seg = String(data.getSeconds()).padStart(2, '0');
+    return `${dia}/${mes}/${ano}  ${hora}:${min}:${seg}`;
 }
 
 function atualizarContador() {

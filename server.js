@@ -760,6 +760,40 @@ app.post('/api/ss/:id/contato', authenticateToken, async (req, res) => {
 app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (req, res) => {
   const fs = require('fs');
   let logId = null;
+  const excelSerialToDate = (value) => {
+    const serial = Number(value);
+    if (!Number.isFinite(serial)) return null;
+    const ms = (serial - 25569) * 86400 * 1000;
+    const date = new Date(ms);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+  const parseDateFlexible = (value) => {
+    if (!value && value !== 0) return null;
+    if (value instanceof Date) return value;
+    if (typeof value === 'number') return excelSerialToDate(value);
+    const str = String(value).trim();
+    if (!str) return null;
+    if (/^\d+(\.\d+)?$/.test(str)) return excelSerialToDate(str);
+    if (str.includes('/')) {
+      const [datePart, timePart = ''] = str.split(' ');
+      const [d, m, y] = datePart.split('/');
+      if (!y) return null;
+      const [hh = '0', mm = '0', ss = '0'] = timePart.split(':');
+      return new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss));
+    }
+    const parsed = new Date(str.replace(' ', 'T'));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+  const formatDateTime = (date) => {
+    if (!date) return null;
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mi = String(date.getMinutes()).padStart(2, '0');
+    const ss = String(date.getSeconds()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+  };
   
   try {
     if (!req.file) {
@@ -839,7 +873,7 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
         const clusterRaw = String(linha[1] || '').trim();
         const regional = String(linha[2] || '').trim();
         const servico = String(linha[6] || '').trim();
-        const dataSaida = linha[0] || '';
+        const dataSaida = formatDateTime(parseDateFlexible(linha[0]));
         const pesquisaRespondida = String(linha[16] || '').trim().toLowerCase();
 
         // Normalizar cluster para formato do banco
@@ -946,7 +980,7 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
             regional,
             servico,
             dataSaida,
-            linha[10] || null, // Data_Envio_Formatada
+            formatDateTime(parseDateFlexible(linha[10])) || null, // Data_Envio_Formatada
             cluster,
             cluster,
             usuarioResponsavel.id,
