@@ -870,23 +870,21 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
         }
 
         // Distribuir somente para usuários online da mesma fila
-        const usuariosFila = usuariosOnline.filter(u => u.fila === cluster);
+        let usuariosFila = usuariosOnline.filter(u => u.fila === cluster);
         if (usuariosFila.length === 0) {
-          erros++;
-          // Mensagem de erro detalhada para debug
-          const todosUsuarios = usuarios.length;
-          const comStatusOnline = usuarios.filter(u => u.status === 'online').length;
-          const dentrodoHorario = usuarios.filter(u => getEffectiveStatus(u) === 'online').length;
-          const naFila = usuarios.filter(u => u.fila === cluster).length;
-          
-          const mensagemErro = `Nenhum usuário disponível. Cluster: ${cluster} | Total usuários: ${todosUsuarios} | Status online: ${comStatusOnline} | Dentro do horário: ${dentrodoHorario} | Na fila ${cluster}: ${naFila}`;
-          
-          await db.run(
-            `INSERT INTO detalhes_importacao (log_id, status, numero_ss, placa, cluster, mensagem) 
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [logId, 'erro', numeroSS, placa, cluster, mensagemErro]
-          );
-          continue;
+          // fallback: tentar usuários com status='online' mesmo que estejam fora do horário
+          const usuariosFilaFallback = usuarios.filter(u => u.status === 'online' && u.fila === cluster);
+          if (usuariosFilaFallback.length > 0) {
+            usuariosFila = usuariosFilaFallback;
+          } else {
+            erros++;
+            await db.run(
+              `INSERT INTO detalhes_importacao (log_id, status, numero_ss, placa, cluster, mensagem) 
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [logId, 'erro', numeroSS, placa, cluster, 'Nenhum usuário online na fila correspondente']
+            );
+            continue;
+          }
         }
 
         const usuarioResponsavel = usuariosFila[totalProcessadas % usuariosFila.length];
