@@ -528,6 +528,8 @@ app.get('/api/ss/para-redistribuir', authenticateToken, authenticateLideranca, a
       ORDER BY s.criado_em DESC
     `);
 
+    console.log(`[Redistribuição] Encontradas ${ss.length} SS's pendentes`);
+
     const ssComStatus = ss.map(item => {
       const responsavel = {
         status: item.responsavel_status,
@@ -540,6 +542,7 @@ app.get('/api/ss/para-redistribuir', authenticateToken, authenticateLideranca, a
       };
     });
 
+    console.log(`[Redistribuição] Retornando ${ssComStatus.length} SS's com status`);
     res.json(ssComStatus);
   } catch (error) {
     res.status(500).json({ error: error.message });
