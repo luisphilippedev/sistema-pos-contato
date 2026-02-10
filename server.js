@@ -1138,6 +1138,86 @@ app.get('/api/logs-importacao/:id/detalhes', authenticateToken, async (req, res)
   }
 });
 
+// ===== ENDPOINTS DO DASHBOARD =====
+
+// Dashboard: SS's por período
+app.get('/api/dashboard/ss', authenticateToken, async (req, res) => {
+  try {
+    const { periodo = 'mes' } = req.query;
+    let dataInicio = new Date();
+    
+    switch(periodo) {
+      case 'hoje':
+        dataInicio.setHours(0, 0, 0, 0);
+        break;
+      case 'semana':
+        dataInicio.setDate(dataInicio.getDate() - 7);
+        break;
+      case 'mes':
+        dataInicio.setMonth(dataInicio.getMonth() - 1);
+        break;
+      case 'trimestre':
+        dataInicio.setMonth(dataInicio.getMonth() - 3);
+        break;
+    }
+    
+    const dataFiltro = isPostgres
+      ? dataInicio.toISOString()
+      : dataInicio.toISOString().replace('T', ' ').replace('Z', '');
+    
+    const ss = await db.query(`
+      SELECT s.*, u.nome as responsavel_nome
+      FROM ss s
+      LEFT JOIN usuarios u ON s.responsavel_id = u.id
+      WHERE s.criado_em >= ?
+      ORDER BY s.criado_em DESC
+    `, [dataFiltro]);
+    
+    res.json(ss);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Dashboard: Contatos por período
+app.get('/api/dashboard/contatos', authenticateToken, async (req, res) => {
+  try {
+    const { periodo = 'mes' } = req.query;
+    let dataInicio = new Date();
+    
+    switch(periodo) {
+      case 'hoje':
+        dataInicio.setHours(0, 0, 0, 0);
+        break;
+      case 'semana':
+        dataInicio.setDate(dataInicio.getDate() - 7);
+        break;
+      case 'mes':
+        dataInicio.setMonth(dataInicio.getMonth() - 1);
+        break;
+      case 'trimestre':
+        dataInicio.setMonth(dataInicio.getMonth() - 3);
+        break;
+    }
+    
+    const dataFiltro = isPostgres
+      ? dataInicio.toISOString()
+      : dataInicio.toISOString().replace('T', ' ').replace('Z', '');
+    
+    const contatos = await db.query(`
+      SELECT c.*, s.numero_ss
+      FROM contatos c
+      LEFT JOIN ss s ON c.ss_id = s.id
+      WHERE c.criado_em >= ?
+      ORDER BY c.criado_em DESC
+    `, [dataFiltro]);
+    
+    res.json(contatos);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);

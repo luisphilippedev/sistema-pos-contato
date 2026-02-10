@@ -668,11 +668,8 @@ function formatarData(data) {
 
 // ===== BOTÃO VER MONITORAMENTOS =====
 
-document.getElementById('btnMonitoramentos')?.addEventListener('click', () => {
-    const tableSection = document.querySelector('.table-section');
-    if (tableSection) {
-        tableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+document.getElementById('btnDashboard')?.addEventListener('click', () => {
+    window.location.href = 'dashboard.html';
 });
 
 // ===== IMPORTAR DADOS =====
