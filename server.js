@@ -455,7 +455,7 @@ app.post('/api/ss/redistribuir-automatico', authenticateToken, authenticateLider
     );
     const usuariosOnline = usuarios.filter(u => getEffectiveStatus(u) === 'online');
 
-    const contadorFila = {};
+    let redistribuidas = 0;
 
     for (const ss_id of ss_ids) {
       const ss = await db.get('SELECT id, responsavel_id, fila, cluster FROM ss WHERE id = ?', [ss_id]);
@@ -467,9 +467,24 @@ app.post('/api/ss/redistribuir-automatico', authenticateToken, authenticateLider
         continue;
       }
 
-      const idx = (contadorFila[fila] || 0) % usuariosFila.length;
-      const usuarioDestino = usuariosFila[idx];
-      contadorFila[fila] = (contadorFila[fila] || 0) + 1;
+      // Distribuição igualitária: buscar carga atual de SS's pendentes de cada usuário da fila
+      const cargaUsuarios = await Promise.all(
+        usuariosFila.map(async (u) => {
+          const result = await db.get(
+            `SELECT COUNT(*) as carga FROM ss 
+             WHERE responsavel_id = ? AND status = 'pendente'`,
+            [u.id]
+          );
+          return {
+            ...u,
+            carga: result?.carga || 0
+          };
+        })
+      );
+
+      // Ordenar por carga (menor carga primeiro) e atribuir ao usuário com menor carga
+      cargaUsuarios.sort((a, b) => a.carga - b.carga);
+      const usuarioDestino = cargaUsuarios[0];
 
       await db.run(
         'UPDATE ss SET responsavel_id = ? WHERE id = ?',
@@ -480,9 +495,14 @@ app.post('/api/ss/redistribuir-automatico', authenticateToken, authenticateLider
         'INSERT INTO redistribuicoes (ss_id, usuario_origem_id, usuario_destino_id, realizado_por_id) VALUES (?, ?, ?, ?)',
         [ss_id, ss.responsavel_id, usuarioDestino.id, req.user.id]
       );
+
+      redistribuidas++;
     }
 
-    res.json({ message: 'Redistribuição automática concluída' });
+    res.json({ 
+      message: `${redistribuidas} SS's redistribuídas de forma igualitária`,
+      redistribuidas 
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1010,10 +1030,34 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
           }
         }
 
-        const usuarioResponsavel = usuariosFila[totalProcessadas % usuariosFila.length];
-
         // Definir status baseado em Pesquisa_respondida
-        const status = pesquisaRespondida === 'sim' ? 'respondida' : 'pendente';
+        let status = 'pendente';
+        let usuarioResponsavel = null;
+
+        if (pesquisaRespondida === 'sim') {
+          // SS já vem respondida - status "sem_atuacao" e não atribuir a ninguém
+          status = 'sem_atuacao';
+          usuarioResponsavel = null;
+        } else {
+          // Distribuição igualitária: buscar carga atual de SS's pendentes (válidas) de cada usuário
+          const cargaUsuarios = await Promise.all(
+            usuariosFila.map(async (u) => {
+              const result = await db.get(
+                `SELECT COUNT(*) as carga FROM ss 
+                 WHERE responsavel_id = ? AND status = 'pendente'`,
+                [u.id]
+              );
+              return {
+                ...u,
+                carga: result?.carga || 0
+              };
+            })
+          );
+
+          // Ordenar por carga (menor carga primeiro) e pegar o primeiro
+          cargaUsuarios.sort((a, b) => a.carga - b.carga);
+          usuarioResponsavel = cargaUsuarios[0];
+        }
 
         // Inserir SS
         await db.run(
@@ -1030,17 +1074,22 @@ app.post('/api/importar-xlsx', authenticateToken, upload.single('file'), async (
             formatDateTime(parseDateFlexible(linha[10])) || null, // Data_Envio_Formatada
             cluster,
             cluster,
-            usuarioResponsavel.id,
+            usuarioResponsavel ? usuarioResponsavel.id : null,
             status
           ]
         );
 
         sucessos++;
+        const mensagem = status === 'sem_atuacao' 
+          ? 'SS já respondida - processada sem atuação'
+          : `Distribuído para ${usuarioResponsavel.nome} (carga: ${usuarioResponsavel.carga})`;
+        
         await db.run(
           `INSERT INTO detalhes_importacao (log_id, status, numero_ss, placa, cluster, responsavel, mensagem) 
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [logId, 'sucesso', numeroSS, placa, cluster, usuarioResponsavel.nome, 
-           `Distribuído para ${usuarioResponsavel.nome}`]
+          [logId, 'sucesso', numeroSS, placa, cluster, 
+           usuarioResponsavel ? usuarioResponsavel.nome : 'Sem atribuição', 
+           mensagem]
         );
 
       } catch (error) {
@@ -1218,9 +1267,67 @@ app.get('/api/dashboard/contatos', authenticateToken, async (req, res) => {
   }
 });
 
+// ===== JOB AUTOMÁTICO: PROCESSAR SS'S VENCIDAS E RESPONDIDAS =====
+
+async function processarSSAutomatico() {
+  try {
+    console.log('🔄 [Job] Verificando SS\'s vencidas e respondidas...');
+    
+    // 1. Processar SS's vencidas (pendentes que ultrapassaram 4 dias da data_envio_pesquisa)
+    const ssPendentes = await db.query(`
+      SELECT id, numero_ss, data_envio_pesquisa 
+      FROM ss 
+      WHERE status = 'pendente' AND data_envio_pesquisa IS NOT NULL
+    `);
+    
+    const agora = new Date();
+    const idsVencidas = [];
+    
+    for (const ss of ssPendentes) {
+      const dataEnvio = new Date(ss.data_envio_pesquisa);
+      const prazoFinal = new Date(dataEnvio.getTime() + 4 * 24 * 60 * 60 * 1000);
+      if (agora > prazoFinal) {
+        idsVencidas.push(ss.id);
+      }
+    }
+    
+    if (idsVencidas.length > 0) {
+      const placeholders = idsVencidas.map(() => '?').join(',');
+      await db.run(`
+        UPDATE ss 
+        SET status = 'vencida' 
+        WHERE id IN (${placeholders})
+      `, idsVencidas);
+      console.log(`✅ [Job] ${idsVencidas.length} SS's marcadas como vencidas`);
+    }
+
+    // 2. SS's que mudaram de pendente para respondida já são tratadas na importação
+    // Aqui podemos verificar se existe alguma inconsistência
+    const ssInconsistentes = await db.query(`
+      SELECT COUNT(*) as total FROM ss 
+      WHERE status = 'respondida' AND responsavel_id IS NULL
+    `);
+    
+    if (ssInconsistentes[0]?.total > 0) {
+      console.log(`⚠️  [Job] ${ssInconsistentes[0].total} SS's respondidas sem responsável (status correto: sem_atuacao)`);
+    }
+
+    console.log('✅ [Job] Processamento automático concluído');
+  } catch (error) {
+    console.error('❌ [Job] Erro ao processar SS\'s automaticamente:', error.message);
+  }
+}
+
+// Executar job a cada 10 minutos (600000ms)
+setInterval(processarSSAutomatico, 10 * 60 * 1000);
+
+// Executar imediatamente ao iniciar o servidor
+setTimeout(processarSSAutomatico, 5000);
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);
   console.log(`📍 Acesse: http://localhost:${PORT}`);
   console.log(`🔧 Modo: ${isPostgres ? 'PostgreSQL (Produção)' : 'SQLite (Desenvolvimento)'}`);
+  console.log(`⏰ Job automático: Processar SS's vencidas a cada 10 minutos`);
 });
