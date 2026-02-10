@@ -167,6 +167,54 @@ app.get('/api/me', authenticateToken, async (req, res) => {
   }
 });
 
+// Endpoint para alterar senha do usuário logado
+app.put('/api/me/senha', authenticateToken, async (req, res) => {
+  try {
+    const { senhaAtual, novaSenha } = req.body;
+    
+    // Validações
+    if (!senhaAtual || !novaSenha) {
+      return res.status(400).json({ erro: 'Senha atual e nova senha são obrigatórias' });
+    }
+    
+    if (novaSenha.length < 6) {
+      return res.status(400).json({ erro: 'A nova senha deve ter no mínimo 6 caracteres' });
+    }
+    
+    // Buscar usuário com senha
+    const usuario = await db.get(
+      'SELECT id, senha FROM usuarios WHERE id = ?',
+      [req.user.id]
+    );
+    
+    if (!usuario) {
+      return res.status(404).json({ erro: 'Usuário não encontrado' });
+    }
+    
+    // Verificar senha atual
+    const senhaValida = bcrypt.compareSync(senhaAtual, usuario.senha);
+    if (!senhaValida) {
+      return res.status(401).json({ erro: 'Senha atual incorreta' });
+    }
+    
+    // Hash da nova senha
+    const novaSenhaHash = bcrypt.hashSync(novaSenha, 10);
+    
+    // Atualizar senha
+    await db.run(
+      'UPDATE usuarios SET senha = ? WHERE id = ?',
+      [novaSenhaHash, req.user.id]
+    );
+    
+    console.log(`✅ Senha alterada para usuário ID: ${req.user.id}`);
+    res.json({ mensagem: 'Senha alterada com sucesso' });
+    
+  } catch (error) {
+    console.error('Erro ao alterar senha:', error);
+    res.status(500).json({ erro: error.message });
+  }
+});
+
 // Endpoint de debug para verificar status de distribuição
 app.get('/api/debug/status-distribuicao', authenticateToken, async (req, res) => {
   try {

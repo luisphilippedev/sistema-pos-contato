@@ -78,6 +78,68 @@ document.getElementById('btnLogout').addEventListener('click', () => {
     location.reload();
 });
 
+// ===== EDITAR PERFIL =====
+
+document.getElementById('btnEditarPerfil').addEventListener('click', () => {
+    // Preencher campos do perfil
+    document.getElementById('perfilNome').value = usuarioLogado.nome;
+    document.getElementById('perfilEmail').value = usuarioLogado.email;
+    
+    // Limpar campos de senha
+    document.getElementById('senhaAtual').value = '';
+    document.getElementById('novaSenha').value = '';
+    document.getElementById('confirmarSenha').value = '';
+    
+    abrirModal('modalEditarPerfil');
+});
+
+document.getElementById('formEditarPerfil').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const senhaAtual = document.getElementById('senhaAtual').value;
+    const novaSenha = document.getElementById('novaSenha').value;
+    const confirmarSenha = document.getElementById('confirmarSenha').value;
+    
+    // Validação
+    if (novaSenha.length < 6) {
+        mostrarErro('A nova senha deve ter no mínimo 6 caracteres.');
+        return;
+    }
+    
+    if (novaSenha !== confirmarSenha) {
+        mostrarErro('A nova senha e a confirmação não correspondem.');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/me/senha`, {
+            method: 'PUT',
+            headers: headers(),
+            body: JSON.stringify({
+                senhaAtual,
+                novaSenha
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.erro || 'Erro ao alterar senha');
+        }
+        
+        mostrarSucesso('Senha alterada com sucesso!');
+        fecharModal('modalEditarPerfil');
+        
+        // Limpar campos
+        document.getElementById('senhaAtual').value = '';
+        document.getElementById('novaSenha').value = '';
+        document.getElementById('confirmarSenha').value = '';
+        
+    } catch (error) {
+        mostrarErro(error.message);
+    }
+});
+
 // ===== INICIALIZAÇÃO =====
 
 function inicializarSistema() {
