@@ -16,6 +16,13 @@
                 <p id="periodoAtual">Carregando...</p>
             </div>
             <div class="header-actions">
+                <select id="filtroFila" class="select-fila">
+                    <option value="">Todas as filas</option>
+                    <option value="revisao_serv_rapido">Revisão + Serv. Rápido</option>
+                    <option value="servico_medio">Serviço Médio</option>
+                    <option value="servico_complexo">Serviço Complexo</option>
+                    <option value="especiais">Especiais</option>
+                </select>
                 <select id="filtroPeriodo" class="select-periodo">
                     <option value="hoje">Hoje</option>
                     <option value="semana">Esta Semana</option>
@@ -38,7 +45,6 @@
                 <div class="kpi-content">
                     <h3>Total de SS's</h3>
                     <div class="kpi-value" id="kpiTotalSS">-</div>
-                    <div class="kpi-change" id="changeTotalSS"></div>
                 </div>
             </div>
 
@@ -47,7 +53,6 @@
                 <div class="kpi-content">
                     <h3>Concluídas</h3>
                     <div class="kpi-value" id="kpiConcluidas">-</div>
-                    <div class="kpi-change" id="changeConcluidas"></div>
                 </div>
             </div>
 
@@ -56,7 +61,6 @@
                 <div class="kpi-content">
                     <h3>Em Análise</h3>
                     <div class="kpi-value" id="kpiEmAnalise">-</div>
-                    <div class="kpi-change" id="changeEmAnalise"></div>
                 </div>
             </div>
 
@@ -65,16 +69,30 @@
                 <div class="kpi-content">
                     <h3>Vencidas</h3>
                     <div class="kpi-value" id="kpiVencidas">-</div>
-                    <div class="kpi-change" id="changeVencidas"></div>
                 </div>
             </div>
 
             <div class="kpi-card kpi-info">
+                <div class="kpi-icon">📥</div>
+                <div class="kpi-content">
+                    <h3>Quantidade de Input</h3>
+                    <div class="kpi-value" id="kpiInputTotal">-</div>
+                </div>
+            </div>
+
+            <div class="kpi-card kpi-purple">
                 <div class="kpi-icon">⚡</div>
                 <div class="kpi-content">
                     <h3>Média Input/Dia</h3>
-                    <div class="kpi-value" id="kpiMediaInput">-</div>
-                    <div class="kpi-change" id="changeMediaInput"></div>
+                    <div class="kpi-value" id="kpiMediaInputDia">-</div>
+                </div>
+            </div>
+
+            <div class="kpi-card kpi-blue">
+                <div class="kpi-icon">🗓️</div>
+                <div class="kpi-content">
+                    <h3>Média Input/Mês</h3>
+                    <div class="kpi-value" id="kpiMediaInputMes">-</div>
                 </div>
             </div>
 
@@ -83,7 +101,6 @@
                 <div class="kpi-content">
                     <h3>Taxa de Sucesso</h3>
                     <div class="kpi-value" id="kpiTaxaSucesso">-</div>
-                    <div class="kpi-change" id="changeTaxaSucesso"></div>
                 </div>
             </div>
         </section>
@@ -93,53 +110,28 @@
             <!-- Performance por Fila -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <h3>📈 Performance por Fila</h3>
-                    <span class="chart-subtitle">Distribuição de SS's por tipo de atendimento</span>
+                    <h3>📈 SS's em Análise por Fila</h3>
+                    <span class="chart-subtitle">Somente status pendente</span>
                 </div>
                 <div class="chart-content">
                     <canvas id="chartFila"></canvas>
                 </div>
-                <div class="chart-legend" id="legendFila"></div>
             </div>
 
-            <!-- Tendência Temporal -->
-            <div class="chart-card chart-wide">
-                <div class="chart-header">
-                    <h3>📅 Tendência de Atendimentos</h3>
-                    <span class="chart-subtitle">Volume diário de SS's recebidas e concluídas</span>
-                </div>
-                <div class="chart-content">
-                    <canvas id="chartTemporal"></canvas>
-                </div>
-            </div>
-
-            <!-- Performance Regional -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <h3>🗺️ Performance Regional</h3>
-                    <span class="chart-subtitle">Top 10 regionais por volume</span>
+                    <h3>🗺️ Quantidade por Regional</h3>
+                    <span class="chart-subtitle">Top 10 regionais do período</span>
                 </div>
                 <div class="chart-content">
                     <canvas id="chartRegional"></canvas>
                 </div>
             </div>
 
-            <!-- Status das SS's -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>🔄 Status Atual</h3>
-                    <span class="chart-subtitle">Distribuição por status</span>
-                </div>
-                <div class="chart-content">
-                    <canvas id="chartStatus"></canvas>
-                </div>
-            </div>
-
-            <!-- Ranking de Usuários -->
             <div class="chart-card chart-wide">
                 <div class="chart-header">
-                    <h3>👥 Ranking de Performance - Equipe</h3>
-                    <span class="chart-subtitle">Top performers do período</span>
+                    <h3>👥 Ranking de SS's Atribuídas</h3>
+                    <span class="chart-subtitle">Volume total por responsável</span>
                 </div>
                 <div class="ranking-table">
                     <table>
@@ -150,32 +142,12 @@
                                 <th>Fila</th>
                                 <th>Total SS's</th>
                                 <th>Concluídas</th>
-                                <th>Taxa</th>
-                                <th>Média/Dia</th>
+                                <th>Em Análise</th>
+                                <th>Vencidas</th>
                             </tr>
                         </thead>
                         <tbody id="rankingBody"></tbody>
                     </table>
-                </div>
-            </div>
-
-            <!-- Volume de Placas -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>🚗 Top Placas</h3>
-                    <span class="chart-subtitle">Veículos com mais SS's</span>
-                </div>
-                <div class="placas-list" id="placasList"></div>
-            </div>
-
-            <!-- Contato com Sucesso -->
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>📞 Resultado dos Contatos</h3>
-                    <span class="chart-subtitle">Distribuição de sucesso no contato</span>
-                </div>
-                <div class="chart-content">
-                    <canvas id="chartContato"></canvas>
                 </div>
             </div>
         </section>

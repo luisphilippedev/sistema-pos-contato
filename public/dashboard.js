@@ -8,7 +8,10 @@ if (!token) {
 }
 
 let periodo = 'mes';
+let filaFiltro = '';
 let dadosDashboard = null;
+let chartFilaInstance = null;
+let chartRegionalInstance = null;
 
 // ===== CORES =====
 const CORES = {
@@ -36,6 +39,11 @@ const CORES = {
 document.addEventListener('DOMContentLoaded', async () => {
     await carregarDados();
     
+    document.getElementById('filtroFila').addEventListener('change', async (e) => {
+        filaFiltro = e.target.value;
+        renderizarDashboard();
+    });
+
     document.getElementById('filtroPeriodo').addEventListener('change', async (e) => {
         periodo = e.target.value;
         await carregarDados();
@@ -73,16 +81,14 @@ async function carregarDados() {
 // ===== RENDERIZAR DASHBOARD =====
 function renderizarDashboard() {
     const { ss, usuarios, contatos } = dadosDashboard;
-    
+    const ssFiltradas = filtrarPorFila(ss);
+    const contatosFiltrados = filtrarContatosPorFila(contatos, ssFiltradas);
+
     atualizarPeriodoAtual();
-    renderizarKPIs(ss, contatos);
-    renderizarChartFila(ss);
-    renderizarChartTemporal(ss);
-    renderizarChartRegional(ss);
-    renderizarChartStatus(ss);
-    renderizarRanking(ss, usuarios);
-    renderizarPlacas(ss);
-    renderizarChartContato(contatos);
+    renderizarKPIs(ssFiltradas, contatosFiltrados);
+    renderizarChartFila(ssFiltradas);
+    renderizarChartRegional(ssFiltradas);
+    renderizarRanking(ssFiltradas, usuarios);
 }
 
 // ===== PERÍODO ATUAL =====
@@ -116,9 +122,15 @@ function renderizarKPIs(ss, contatos) {
     const emAnalise = ss.filter(s => s.status === 'pendente').length;
     const vencidas = ss.filter(s => s.status === 'vencida').length;
     
-    // Calcular média de input por dia
-    const datasUnicas = [...new Set(ss.map(s => s.criado_em?.split(' ')[0] || s.criado_em?.split('T')[0]))].length;
-    const mediaInput = datasUnicas > 0 ? (total / datasUnicas).toFixed(1) : 0;
+    // Quantidade de input e médias
+    const datas = ss.map(s => s.criado_em).filter(Boolean);
+    const diasUnicos = new Set(datas.map(d => (d.split(' ')[0] || d.split('T')[0]))).size;
+    const mesesUnicos = new Set(datas.map(d => {
+        const [y, m] = (d.split(' ')[0] || d.split('T')[0]).split('-');
+        return `${y}-${m}`;
+    })).size;
+    const mediaDia = diasUnicos > 0 ? (total / diasUnicos).toFixed(1) : 0;
+    const mediaMes = mesesUnicos > 0 ? (total / mesesUnicos).toFixed(1) : 0;
     
     // Taxa de sucesso
     const contatosSucesso = contatos.filter(c => c.sucesso_contato === 'Resolvido').length;
@@ -128,24 +140,10 @@ function renderizarKPIs(ss, contatos) {
     document.getElementById('kpiConcluidas').textContent = concluidas.toLocaleString('pt-BR');
     document.getElementById('kpiEmAnalise').textContent = emAnalise.toLocaleString('pt-BR');
     document.getElementById('kpiVencidas').textContent = vencidas.toLocaleString('pt-BR');
-    document.getElementById('kpiMediaInput').textContent = mediaInput;
+    document.getElementById('kpiInputTotal').textContent = total.toLocaleString('pt-BR');
+    document.getElementById('kpiMediaInputDia').textContent = mediaDia;
+    document.getElementById('kpiMediaInputMes').textContent = mediaMes;
     document.getElementById('kpiTaxaSucesso').textContent = `${taxaSucesso}%`;
-    
-    // Mudanças (mock - implementar comparação com período anterior)
-    mostrarMudanca('changeTotalSS', 12, true);
-    mostrarMudanca('changeConcluidas', 8, true);
-    mostrarMudanca('changeEmAnalise', -5, true);
-    mostrarMudanca('changeVencidas', -15, true);
-    mostrarMudanca('changeMediaInput', 3, true);
-    mostrarMudanca('changeTaxaSucesso', 5, true);
-}
-
-function mostrarMudanca(elementId, valor, positivo) {
-    const el = document.getElementById(elementId);
-    const sinal = valor >= 0 ? '+' : '';
-    const classe = valor > 0 ? (positivo ? 'positive' : 'negative') : (positivo ? 'negative' : 'positive');
-    el.textContent = `${sinal}${valor}% vs período anterior`;
-    el.className = `kpi-change ${classe}`;
 }
 
 // ===== CHART: PERFORMANCE POR FILA =====
@@ -165,15 +163,24 @@ function renderizarChartFila(ss) {
         if (dados[fila] !== undefined) dados[fila]++;
     });
     
+    const pendentes = ss.filter(s => s.status === 'pendente');
+    pendentes.forEach(s => {
+        const fila = s.fila || s.cluster;
+        if (dados[fila] !== undefined) dados[fila]++;
+    });
+
     const ctx = document.getElementById('chartFila');
-    new Chart(ctx, {
-        type: 'doughnut',
+    if (chartFilaInstance) {
+        chartFilaInstance.destroy();
+    }
+    chartFilaInstance = new Chart(ctx, {
+        type: 'bar',
         data: {
             labels: Object.values(filas),
             datasets: [{
                 data: Object.values(dados),
                 backgroundColor: CORES.filas,
-                borderWidth: 0
+                borderRadius: 8
             }]
         },
         options: {
@@ -181,61 +188,8 @@ function renderizarChartFila(ss) {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'bottom',
-                    labels: { padding: 15, font: { size: 13 } }
+                    display: false
                 }
-            }
-        }
-    });
-}
-
-// ===== CHART: TENDÊNCIA TEMPORAL =====
-function renderizarChartTemporal(ss) {
-    const datasMap = {};
-    
-    ss.forEach(s => {
-        const data = (s.criado_em?.split(' ')[0] || s.criado_em?.split('T')[0]);
-        if (!data) return;
-        if (!datasMap[data]) datasMap[data] = { recebidas: 0, concluidas: 0 };
-        datasMap[data].recebidas++;
-        if (s.status === 'respondida') datasMap[data].concluidas++;
-    });
-    
-    const datasOrdenadas = Object.keys(datasMap).sort();
-    const labels = datasOrdenadas.map(d => {
-        const [y, m, dia] = d.split('-');
-        return `${dia}/${m}`;
-    });
-    
-    const ctx = document.getElementById('chartTemporal');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: 'SS\'s Recebidas',
-                    data: datasOrdenadas.map(d => datasMap[d].recebidas),
-                    borderColor: CORES.blue,
-                    backgroundColor: CORES.blue + '33',
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'SS\'s Concluídas',
-                    data: datasOrdenadas.map(d => datasMap[d].concluidas),
-                    borderColor: CORES.green,
-                    backgroundColor: CORES.green + '33',
-                    tension: 0.4,
-                    fill: true
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'top' }
             },
             scales: {
                 y: { beginAtZero: true }
@@ -258,7 +212,10 @@ function renderizarChartRegional(ss) {
         .slice(0, 10);
     
     const ctx = document.getElementById('chartRegional');
-    new Chart(ctx, {
+    if (chartRegionalInstance) {
+        chartRegionalInstance.destroy();
+    }
+    chartRegionalInstance = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: sorted.map(r => r[0]),
@@ -282,37 +239,6 @@ function renderizarChartRegional(ss) {
     });
 }
 
-// ===== CHART: STATUS =====
-function renderizarChartStatus(ss) {
-    const status = {
-        'Pendente': ss.filter(s => s.status === 'pendente').length,
-        'Vencida': ss.filter(s => s.status === 'vencida').length,
-        'Respondida': ss.filter(s => s.status === 'respondida').length
-    };
-    
-    const ctx = document.getElementById('chartStatus');
-    new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: Object.keys(status),
-            datasets: [{
-                data: Object.values(status),
-                backgroundColor: [CORES.yellow, CORES.red, CORES.green]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { padding: 15 }
-                }
-            }
-        }
-    });
-}
-
 // ===== RANKING DE USUÁRIOS =====
 function renderizarRanking(ss, usuarios) {
     const stats = {};
@@ -322,7 +248,9 @@ function renderizarRanking(ss, usuarios) {
             nome: u.nome,
             fila: u.fila,
             total: 0,
-            concluidas: 0
+            concluidas: 0,
+            emAnalise: 0,
+            vencidas: 0
         };
     });
     
@@ -332,22 +260,22 @@ function renderizarRanking(ss, usuarios) {
             if (s.status === 'respondida') {
                 stats[s.responsavel_id].concluidas++;
             }
+            if (s.status === 'pendente') {
+                stats[s.responsavel_id].emAnalise++;
+            }
+            if (s.status === 'vencida') {
+                stats[s.responsavel_id].vencidas++;
+            }
         }
     });
     
     const ranking = Object.values(stats)
         .filter(s => s.total > 0)
-        .map(s => ({
-            ...s,
-            taxa: s.total > 0 ? ((s.concluidas / s.total) * 100).toFixed(1) : 0,
-            mediaDia: (s.total / Math.max(1, new Set(ss.map(x => x.criado_em?.split(' ')[0])).size)).toFixed(1)
-        }))
         .sort((a, b) => b.total - a.total);
     
     const tbody = document.getElementById('rankingBody');
     tbody.innerHTML = ranking.map((r, i) => {
         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
-        const taxaClasse = r.taxa >= 80 ? 'taxa-excelente' : r.taxa >= 60 ? 'taxa-bom' : r.taxa >= 40 ? 'taxa-regular' : 'taxa-baixo';
         const filaTexto = formatarFila(r.fila);
         
         return `
@@ -357,8 +285,8 @@ function renderizarRanking(ss, usuarios) {
                 <td>${filaTexto}</td>
                 <td>${r.total}</td>
                 <td>${r.concluidas}</td>
-                <td><span class="taxa-badge ${taxaClasse}">${r.taxa}%</span></td>
-                <td>${r.mediaDia}</td>
+                <td>${r.emAnalise}</td>
+                <td>${r.vencidas}</td>
             </tr>
         `;
     }).join('');
@@ -374,68 +302,13 @@ function formatarFila(fila) {
     return filas[fila] || fila;
 }
 
-// ===== TOP PLACAS =====
-function renderizarPlacas(ss) {
-    const placas = {};
-    
-    ss.forEach(s => {
-        const p = s.placa || 'Não informado';
-        placas[p] = (placas[p] || 0) + 1;
-    });
-    
-    const sorted = Object.entries(placas)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-    
-    const html = sorted.map(([placa, count]) => `
-        <div class="placa-item">
-            <span class="placa-nome">${placa}</span>
-            <div class="placa-count">
-                <span>${count} SS's</span>
-                <span class="placa-badge">${((count / ss.length) * 100).toFixed(1)}%</span>
-            </div>
-        </div>
-    `).join('');
-    
-    document.getElementById('placasList').innerHTML = html;
+// ===== FILTROS =====
+function filtrarPorFila(ss) {
+    if (!filaFiltro) return ss;
+    return ss.filter(s => (s.fila || s.cluster) === filaFiltro);
 }
 
-// ===== CHART: CONTATO COM SUCESSO =====
-function renderizarChartContato(contatos) {
-    const distribuicao = {
-        'Resolvido': 0,
-        'Sem sucesso': 0,
-        'Fora de atuação': 0,
-        'Sem contato': 0
-    };
-    
-    contatos.forEach(c => {
-        const tipo = c.sucesso_contato || 'Sem contato';
-        if (distribuicao[tipo] !== undefined) {
-            distribuicao[tipo]++;
-        }
-    });
-    
-    const ctx = document.getElementById('chartContato');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: Object.keys(distribuicao),
-            datasets: [{
-                label: 'Quantidade',
-                data: Object.values(distribuicao),
-                backgroundColor: Object.keys(distribuicao).map(k => CORES.contato[k])
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true }
-            }
-        }
-    });
+function filtrarContatosPorFila(contatos, ssFiltradas) {
+    const ids = new Set(ssFiltradas.map(s => s.id));
+    return contatos.filter(c => ids.has(c.ss_id));
 }
