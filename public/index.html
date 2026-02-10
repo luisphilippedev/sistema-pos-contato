@@ -44,6 +44,13 @@
                     <div class="user-details">
                         <h3 id="userName">Luis Philippe</h3>
                         <p id="userRole">Assistente Apoio Desenv. Negocio</p>
+                        <button id="btnEditarPerfil" class="btn-editar-perfil">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Editar perfil
+                        </button>
                     </div>
                 </div>
             </div>
@@ -83,13 +90,6 @@
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                     <span>Importar<br>Dados</span>
-                </button>
-
-                <button id="btnEditarPerfil" class="header-action">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span>Editar<br>Perfil</span>
                 </button>
                 
                 <button id="btnLogout" class="btn-logout">Sair</button>
@@ -248,7 +248,7 @@
 
     <!-- Modal Editar Perfil -->
     <div id="modalEditarPerfil" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-perfil">
             <div class="modal-header">
                 <h2>Editar Perfil</h2>
                 <button class="modal-close" onclick="fecharModal('modalEditarPerfil')">&times;</button>
@@ -256,22 +256,23 @@
             <form id="formEditarPerfil" class="form-container">
                 <div class="form-group">
                     <label for="perfilNome">Nome</label>
-                    <input type="text" id="perfilNome" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+                    <input type="text" id="perfilNome" readonly class="input-readonly">
                 </div>
                 <div class="form-group">
                     <label for="perfilEmail">E-mail</label>
-                    <input type="email" id="perfilEmail" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+                    <input type="email" id="perfilEmail" readonly class="input-readonly">
                 </div>
+                <div class="divider"></div>
                 <div class="form-group">
-                    <label for="senhaAtual">Senha Atual <span style="color: red;">*</span></label>
+                    <label for="senhaAtual">Senha Atual <span style="color: #e74c3c;">*</span></label>
                     <input type="password" id="senhaAtual" required placeholder="Digite sua senha atual">
                 </div>
                 <div class="form-group">
-                    <label for="novaSenha">Nova Senha <span style="color: red;">*</span></label>
+                    <label for="novaSenha">Nova Senha <span style="color: #e74c3c;">*</span></label>
                     <input type="password" id="novaSenha" required placeholder="Digite a nova senha (mínimo 6 caracteres)" minlength="6">
                 </div>
                 <div class="form-group">
-                    <label for="confirmarSenha">Confirmar Nova Senha <span style="color: red;">*</span></label>
+                    <label for="confirmarSenha">Confirmar Nova Senha <span style="color: #e74c3c;">*</span></label>
                     <input type="password" id="confirmarSenha" required placeholder="Confirme a nova senha" minlength="6">
                 </div>
                 <div class="form-actions">

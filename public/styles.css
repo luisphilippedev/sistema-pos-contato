@@ -148,6 +148,33 @@ body {
     font-size: 13px;
 }
 
+/* Botão discreto de editar perfil */
+.btn-editar-perfil {
+    background: none;
+    border: none;
+    color: var(--verde-claro);
+    font-size: 12px;
+    padding: 4px 0;
+    margin-top: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    opacity: 0.8;
+}
+
+.btn-editar-perfil:hover {
+    opacity: 1;
+    color: var(--verde-escuro);
+    text-decoration: underline;
+}
+
+.btn-editar-perfil svg {
+    width: 14px;
+    height: 14px;
+}
+
 .header-center {
     flex: 1;
     text-align: center;
@@ -519,6 +546,63 @@ body {
 
 .modal-large {
     max-width: 1000px;
+}
+
+/* Modal de perfil - proporções compactas */
+.modal-perfil {
+    max-width: 480px !important;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fdf9 100%);
+    border: 1px solid rgba(109, 191, 139, 0.1);
+}
+
+.modal-perfil .modal-header {
+    background: linear-gradient(135deg, var(--verde-escuro) 0%, #3d7f5f 100%);
+    color: var(--branco);
+    padding: 20px 24px;
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-perfil .modal-header h2 {
+    color: var(--branco);
+    font-size: 20px;
+}
+
+.modal-perfil .modal-close {
+    color: var(--branco);
+    opacity: 0.9;
+}
+
+.modal-perfil .modal-close:hover {
+    color: var(--branco);
+    opacity: 1;
+}
+
+.modal-perfil .form-container {
+    padding: 24px;
+}
+
+.modal-perfil .form-group {
+    margin-bottom: 16px;
+}
+
+.modal-perfil .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cinza-medio), transparent);
+    margin: 20px 0;
+}
+
+.modal-perfil .input-readonly {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+    color: var(--cinza-escuro);
+    border-color: #e0e0e0;
+}
+
+.modal-perfil .form-actions {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--cinza-medio);
 }
 
 .modal-header {
