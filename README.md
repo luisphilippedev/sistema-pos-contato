@@ -2,6 +2,22 @@
 
 Sistema web desenvolvido para gerenciar o atendimento pós-contato com clientes da Localiza.
 
+## ⚠️ IMPORTANTE - Configuração Inicial
+
+**Antes de iniciar o sistema, você PRECISA configurar o arquivo `.env`:**
+
+```powershell
+# Copie o arquivo de exemplo
+copy .env.example .env
+```
+
+Se não fizer isso, você verá o erro: **"JWT_SECRET não está definido"**
+
+📖 **Guia rápido:** [SETUP-RAPIDO.md](./SETUP-RAPIDO.md)
+🔧 **Problemas?** [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+
+---
+
 ## 📋 Funcionalidades
 
 ### Página Home (Implementada)

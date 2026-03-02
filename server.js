@@ -72,20 +72,49 @@ function withEffectiveStatus(user) {
 
 // Middleware de autenticação
 const authenticateToken = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1];
-  
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
+
   if (!token) {
     console.log('❌ Token não fornecido');
+    console.log('   Authorization header:', authHeader || 'não presente');
     return res.status(401).json({ error: 'Token não fornecido' });
   }
 
   console.log('🔑 Tentando validar token...');
   console.log('🔐 JWT_SECRET configurado:', process.env.JWT_SECRET ? 'SIM' : 'NÃO');
-  
+
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
       console.log('❌ Erro ao validar token:', err.message);
-      return res.status(403).json({ error: 'Token inválido', detalhes: err.message });
+      console.log('   Tipo de erro:', err.name);
+
+      // Mensagens de erro mais específicas
+      if (err.name === 'TokenExpiredError') {
+        return res.status(403).json({
+          error: 'Token expirado',
+          detalhes: 'Sua sessão expirou. Por favor, faça login novamente.',
+          code: 'TOKEN_EXPIRED'
+        });
+      } else if (err.name === 'JsonWebTokenError') {
+        return res.status(403).json({
+          error: 'Token inválido',
+          detalhes: 'Token inválido ou corrompido. Por favor, faça login novamente.',
+          code: 'TOKEN_INVALID'
+        });
+      } else if (err.name === 'NotBeforeError') {
+        return res.status(403).json({
+          error: 'Token não ativo',
+          detalhes: 'Token ainda não está ativo.',
+          code: 'TOKEN_NOT_ACTIVE'
+        });
+      }
+
+      return res.status(403).json({
+        error: 'Token inválido',
+        detalhes: err.message,
+        code: 'TOKEN_ERROR'
+      });
     }
     console.log('✅ Token válido para usuário:', user.email);
     req.user = user;
