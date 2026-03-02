@@ -15,6 +15,24 @@ function headers() {
     };
 }
 
+// Função auxiliar para tratar erros de autenticação
+async function handleAuthError(response) {
+    if (response.status === 401 || response.status === 403) {
+        const data = await response.json();
+
+        // Se o token está inválido ou expirado, limpar e redirecionar para login
+        if (data.code === 'TOKEN_INVALID' || data.code === 'TOKEN_EXPIRED' || data.code === 'TOKEN_ERROR') {
+            console.log('Token inválido ou expirado, redirecionando para login...');
+            localStorage.removeItem('token');
+            localStorage.removeItem('usuario');
+            alert(data.detalhes || 'Sua sessão expirou. Por favor, faça login novamente.');
+            location.reload();
+            return true;
+        }
+    }
+    return false;
+}
+
 function mostrarErro(mensagem) {
     alert(mensagem);
 }
@@ -174,22 +192,29 @@ async function carregarMetaDiaria() {
         const response = await fetch(`${API_URL}/minha-meta`, {
             headers: headers()
         });
-        
+
+        // Verificar erro de autenticação
+        if (await handleAuthError(response)) return;
+
+        if (!response.ok) {
+            throw new Error('Erro ao carregar meta');
+        }
+
         const data = await response.json();
-        
+
         const realizados = data.contatos_realizados || 0;
         const meta = data.meta || 50;
         const percentual = (realizados / meta) * 100;
-        
+
         // Atualizar texto
         document.getElementById('progressText').textContent = `${realizados}/${meta}`;
-        
+
         // Atualizar círculo de progresso
         const circulo = document.getElementById('progressCircle');
         const circunferencia = 2 * Math.PI * 54; // raio = 54
         const offset = circunferencia - (percentual / 100) * circunferencia;
         circulo.style.strokeDashoffset = offset;
-        
+
     } catch (error) {
         console.error('Erro ao carregar meta:', error);
     }
